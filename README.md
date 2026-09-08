@@ -1,5 +1,7 @@
 # Fantasy Hockey Draft Tool — 2026-27
 
+**https://fantasy-hockey-aggregate.pages.dev/**
+
 A ranked big board that blends several projection sources with weights you tune
 by hand. Python reads the spreadsheets; the board itself is a single
 self-contained HTML file without relying on a server, network, or installation.
@@ -62,13 +64,12 @@ setup to another machine or keeping a backup before you experiment.
 
 | Source | Players | Coverage |
 |---|---|---|
-| DatsyukToZetterberg | 795 | 25 stats, skaters **and goalies** |
-| Daily Faceoff | 643 | 23 stats, skaters **and goalies** |
-| Apples & Ginos — Nate | 378 | 10 stats, skaters only |
-| Apples & Ginos — Blake | 378 | 10 stats, skaters only |
+| [DatsyukToZetterberg](https://www.reddit.com/r/fantasyhockey/comments/1w167wt/dtz_20262027_fantasy_hockey_projections_free/) | 795 | 25 stats, skaters **and goalies** |
+| [Daily Faceoff](https://www.dailyfaceoff.com/projections) | 643 | 23 stats, skaters **and goalies** |
+| [Apples & Ginos](https://www.reddit.com/r/fantasyhockey/comments/1w4hm18/ag_202627_fantasy_hockey_projections_385_players/) | 378 | 10 stats, skaters only |
 
 806 players after joining. Team schedule strength comes from the
-[@HockeyBangers](https://x.com/HockeyBangers) 2026-27 schedule pack.
+[HockeyBangers](https://hockeybangers.substack.com/p/analyzing-the-2026-27-nhl-schedule) 2026-27 schedule pack.
 
 Add your own with **Import projections** in Settings (CSV or XLSX, columns
 auto-detected), or permanently via `config/sources.json`. Any source can be
