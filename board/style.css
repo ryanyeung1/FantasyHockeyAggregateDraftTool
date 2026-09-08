@@ -1,0 +1,758 @@
+/* Draft board styling.
+ *
+ * Built for one situation: you are on the clock, the room is loud, and you have
+ * maybe eight seconds. Dense rows, high contrast, no animation that delays a
+ * read, and the two numbers that decide the pick (VORP and tier) given the most
+ * visual weight.
+ */
+
+/* A class selector beats the browser's own [hidden] rule, so anything with a
+   display of its own -- .field is display:grid -- stayed visible when hidden.
+   That left the games-played source and the import sheet picker on screen
+   permanently. Global and !important so it cannot regress the next time an
+   element gains a display. */
+[hidden] { display: none !important; }
+
+:root {
+  --bg: #0f1216;
+  --panel: #161b22;
+  --panel-2: #1c232c;
+  --line: #2a333f;
+  --line-soft: #212a34;
+  --text: #e6edf3;
+  --muted: #8b98a6;
+  --dim: #626f7d;
+  --accent: #4c9aff;
+  --accent-dim: #1f4b80;
+  --good: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  /* Age bands. Blue/orange rather than green/amber: those two differ almost
+     only on the red-green channel, which is the channel red-green colour
+     blindness removes, and their luminance is identical (7.4 against the row
+     background for both) so lightness does not separate them either. These
+     two are 254 apart on the blue-yellow channel against green/amber's 104,
+     and both still clear WCAG AA on every row background the board uses. */
+  --pre-prime: #58a6ff;
+  --post-prime: #f0883e;
+  --steal: #2ea043;
+  --reach: #bb4b3f;
+  --row-h: 27px;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 var(--sans);
+  overflow: hidden;
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ chrome */
+
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 320px;
+  grid-template-areas: "top top" "main side";
+  height: 100vh;
+}
+
+header {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.brand small {
+  color: var(--dim);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+#search {
+  flex: 1 1 200px;
+  min-width: 150px;
+  padding: 5px 9px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: none;
+}
+
+#search:focus { border-color: var(--accent); }
+
+.filters { display: flex; gap: 3px; }
+
+.chip {
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip:hover { border-color: var(--dim); color: var(--text); }
+
+.chip.on {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.spacer { flex: 0 0 6px; }
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.toggle input { accent-color: var(--accent); margin: 0; }
+
+/* -------------------------------------------------------------- main table */
+
+main {
+  grid-area: main;
+  overflow: auto;
+  position: relative;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+thead th:hover { color: var(--text); }
+thead th.left { text-align: left; }
+thead th.sorted { color: var(--accent); }
+thead th .dir { font-size: 9px; margin-left: 2px; }
+
+tbody td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: right;
+  height: var(--row-h);
+  white-space: nowrap;
+  /* Double-click adds to your roster, and without this it would also leave a
+     player's name highlighted every time. Use the CSV export to get data out. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+tbody td.left { text-align: left; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: #1a222c; }
+
+tr.drafted td { color: var(--dim); }
+tr.drafted .pname { text-decoration: line-through; }
+tr.mine td { background: #12261a; }
+tr.mine:hover td { background: #17301f; }
+
+.pname { font-weight: 550; }
+
+/* The name is the one part of a row that does not draft the player, so it
+   gets its own affordance: a dotted underline under the cursor and a chevron
+   that fades in with the row. Hidden at rest -- 806 permanent chevrons would
+   be noise in a table you scan rather than read. */
+.pname:hover, .pexp:hover + .pname { text-decoration: underline dotted; }
+
+.pexp {
+  display: inline-block;
+  width: 9px;
+  margin-left: 4px;
+  font-size: 9px;
+  color: var(--dim);
+  opacity: 0;
+  transition: opacity 0.08s linear;
+}
+
+tbody tr:hover .pexp { opacity: 1; }
+td.left:hover .pexp { color: var(--accent); }
+/* Once open it is state, not an invitation, so it stays put. */
+.pexp.open { opacity: 1; color: var(--accent); }
+.tm, .pos { color: var(--muted); font-size: 11.5px; }
+.num { font-family: var(--mono); font-size: 12px; }
+.vorp { font-family: var(--mono); font-weight: 650; }
+.vorp.neg { color: var(--dim); }
+.prnk { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* Gap to the next available player at the position -- the cost of waiting. */
+.drop { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.drop.big { color: var(--warn); font-weight: 650; }
+
+/* Age, with the two ends of the curve marked. Colour and glyph together, so
+   the band survives a monochrome screen or a colour-blind reader. */
+.age { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.age.pre { color: var(--pre-prime); }
+.age.post { color: var(--post-prime); }
+
+/* Schedule summary in the panel that opens on a player's name. */
+.schednote {
+  color: var(--muted);
+  font-size: 11.5px;
+  margin: -2px 0 8px;
+}
+.schednote b { color: var(--text); font-weight: 600; }
+
+/* The schedule marks carry their own leading margin. */
+
+/* Direction markers on the numeric columns. Always rendered, empty when there
+   is nothing to flag, so every row's number starts at the same place instead
+   of shifting on the rows that happen to carry one. Colour alone would be no
+   signal at all to a colourblind reader; this is the channel that always
+   works. */
+.flag {
+  display: inline-block;
+  width: 9px;
+  margin-left: 3px;   /* was a literal space; a margin is a width the header can match */
+  font-size: 9px;
+  text-align: left;
+}
+
+/* 8px of ordinary cell padding plus the 12px the slot occupies, so the heading
+   lines up with the numbers rather than with the edge of the cell. */
+thead th.hasflag { padding-right: 20px; }
+
+/* Your own +/- read on a player. Two explicit buttons rather than a cycling
+   cell, so a minus tier is one click and nothing collides with click-to-draft. */
+td.adjcell { padding: 0 8px; white-space: nowrap; text-align: center; }
+thead th.center { text-align: center; }
+
+.adjbtn {
+  width: 16px;
+  height: 17px;
+  padding: 0;
+  line-height: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.adjbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+.adjbtn:disabled { opacity: 0.25; cursor: default; }
+
+/* Your shortlist: keep an eye on, or never draft. Two toggles rather than one
+   cycling control, so either is a single click from any state. Sized like
+   .adjbtn beside it -- both columns are your own input, not the projections. */
+td.markcell { padding: 0 8px; white-space: nowrap; text-align: center; }
+
+.markbtn {
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  line-height: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.markbtn + .markbtn { margin-left: 3px; }
+.markbtn:hover { border-color: var(--accent); color: var(--text); }
+.markbtn.watch.on { color: var(--accent); border-color: var(--accent); }
+.markbtn.avoid.on { color: var(--reach); border-color: var(--reach); }
+
+/* The Mark column sits far right, so the row carries an edge you can catch
+   while scanning. Layered over tr.drafted / tr.mine rather than replacing them. */
+tr.watch td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+tr.avoid td:first-child { box-shadow: inset 2px 0 0 var(--reach); }
+tr.avoid .pname { color: var(--muted); }
+
+/* Why a name is missing from Best Available. */
+.bp-note {
+  color: var(--dim);
+  font-size: 10.5px;
+  padding: 4px 2px 0;
+}
+
+.adjval {
+  display: inline-block;
+  min-width: 26px;
+  /* Fixed-width box, so without this the lone dot of an unadjusted player
+     sits at its left edge and drags the whole group off centre. */
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  vertical-align: middle;
+}
+
+.adjval.up { color: var(--steal); font-weight: 650; }
+.adjval.down { color: var(--reach); font-weight: 650; }
+
+/* ------------------------------------------------------- import dialog */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+
+.modal-box {
+  width: 760px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* One card per column of the file. The sample value is what lets you tell two
+   identically-named columns apart, so it is never omitted. */
+.mapcols {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.mapcol {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 8px 7px;
+}
+
+.mapcol.flag { border-color: var(--warn); }
+
+.mapcol-head {
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapcol-q { color: var(--warn); font-weight: 700; }
+
+.mapcol-sample {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--dim);
+  margin: 2px 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapcol select {
+  width: 100%;
+  padding: 3px 5px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 11.5px;
+  outline: none;
+}
+
+.mapcol select:focus { border-color: var(--accent); }
+
+.linkbtn {
+  background: none;
+  border: none;
+  padding: 0 0 0 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  text-decoration: underline;
+}
+
+.linkbtn:hover { color: var(--bad); }
+
+.note.subtle {
+  background: var(--panel-2);
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+/* Last season's finish. Green = the board expects a big step up on what they
+   actually did; amber = a big step down. */
+.last { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.last.up { color: var(--steal); font-weight: 600; }
+.last.down { color: var(--reach); }
+.last.none { color: #3d4753; }
+
+.tier {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+.tier.t1 { background: #2d4a2f; color: #b7e5bb; }
+.tier.t2 { background: #3d4326; color: #e0dfae; }
+.tier.t3 { background: #40372a; color: #e3ccab; }
+
+/* ADP vs board rank: green means the room is letting them slide. */
+.adp.steal { color: var(--steal); font-weight: 600; }
+.adp.reach { color: var(--reach); }
+
+.srcdot {
+  display: inline-block;
+  width: 5px; height: 5px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--dim);
+  vertical-align: middle;
+}
+.srcdot.on { background: var(--accent); }
+
+/* Expanded per-source breakdown ------------------------------------------- */
+
+tr.detail td { padding: 0; background: #10161d; border-bottom: 1px solid var(--line); }
+.detail-wrap { padding: 10px 14px; overflow-x: auto; }
+
+.detail-wrap h4 {
+  margin: 0 0 7px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+table.srccmp { width: auto; min-width: 100%; }
+table.srccmp th, table.srccmp td {
+  padding: 2px 9px 2px 0;
+  border: none;
+  height: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+table.srccmp th { position: static; background: none; text-transform: none; letter-spacing: 0; }
+table.srccmp td.slabel { color: var(--muted); font-family: var(--sans); text-align: left; }
+table.srccmp tr.blendrow td { color: var(--accent); font-weight: 650; border-top: 1px solid var(--line); }
+table.srccmp td.absent { color: #3d4753; }
+
+/* ---------------------------------------------------------------- side rail */
+
+aside {
+  grid-area: side;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 10px 12px 40px;
+}
+
+aside section { margin-bottom: 16px; }
+
+aside h3 {
+  margin: 0 0 7px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+aside h3 .hint { text-transform: none; letter-spacing: 0; color: var(--dim); font-weight: 400; }
+
+.bestpos { display: grid; gap: 5px; }
+
+.bp-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 7px;
+  align-items: baseline;
+  padding: 4px 6px;
+  background: var(--panel-2);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bp-row:hover { background: #232c37; }
+.bp-row .bp-pos { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 650; }
+.bp-row .bp-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-row .bp-v { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.bp-row.empty { color: var(--dim); cursor: default; }
+
+.slots { display: grid; gap: 3px; }
+
+.slot {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+
+.slot .s-pos { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.slot .s-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot.open .s-name { color: var(--dim); font-style: italic; }
+
+.rosterbar { color: var(--dim); font-size: 11.5px; margin-top: 6px; }
+
+/* -------------------------------------------------------------- settings */
+
+.drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 420px;
+  max-width: 92vw;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  z-index: 20;
+  overflow-y: auto;
+  padding: 14px 16px 60px;
+  box-shadow: -18px 0 42px rgba(0, 0, 0, 0.5);
+}
+
+
+.drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.drawer-head h2 { margin: 0; font-size: 15px; }
+
+.close {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 3px 9px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.close:hover { color: var(--text); border-color: var(--dim); }
+
+.field {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.field label { color: var(--muted); }
+.field.wide { grid-template-columns: 1fr; }
+
+/* Every text-entry control, not just number ones. A bare [type="number"]
+   selector left the import dialog's name field unstyled, so it kept the
+   browser's white default behind the theme's light text and read as blank. */
+.field input[type="number"], .field input[type="text"],
+.field select, .drawer select {
+  width: 100%;
+  padding: 4px 7px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  text-align: right;
+  outline: none;
+}
+
+.field select, .drawer select, .field input[type="text"] { text-align: left; }
+
+/* The native number spinner is three different widgets: Chrome fades it out
+   until hover, Firefox draws it always, Safari renders none at all. Hidden
+   here and replaced by .stepper below, so every browser gets the same control.
+   Firefox needs the -moz rule; the ::-webkit- rule covers Chrome and Safari. */
+.field input[type="number"] {
+  /* "textfield", not "none". Only textfield suppresses the spinner -- and the
+     unprefixed property has to say so too, because being declared last it
+     overrides the -moz- line that would otherwise have done the job. */
+  -moz-appearance: textfield;
+  -webkit-appearance: textfield;
+  appearance: textfield;
+  text-align: center;   /* it sits between two buttons now, not against an edge */
+}
+/* Belt and braces for WebKit, which draws the spinner as a shadow child that
+   the property above does not always reach. !important because this competes
+   with the browser's own stylesheet for a pseudo-element we cannot inspect. */
+.field input[type="number"]::-webkit-inner-spin-button,
+.field input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: none !important;
+  margin: 0;
+}
+
+/* Our own stepper. Fills the column .field already allots the input, so rows
+   keep their height, and borrows .adjbtn's sizing so the two sets of -/+
+   buttons on the page look like one control rather than two. */
+.stepper {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.stepbtn {
+  width: 16px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.stepbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+.stepbtn:disabled { opacity: 0.25; cursor: default; }
+
+.field input:focus, .drawer select:focus { border-color: var(--accent); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+
+.srcw { padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+
+.srcw-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.srcw-top b { font-weight: 600; }
+.srcw-top .w { font-family: var(--mono); color: var(--accent); }
+.srcw input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+.srcw .cov { color: var(--dim); font-size: 11px; }
+
+.note {
+  background: #221d10;
+  border: 1px solid #4a3c1a;
+  border-radius: 5px;
+  padding: 7px 9px;
+  color: #e3cb8f;
+  font-size: 11.5px;
+  margin: 8px 0;
+}
+
+.drawer h3 {
+  margin: 16px 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.drawer h3:first-of-type { border-top: none; }
+
+.btnrow { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+
+.btn {
+  padding: 5px 11px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.btn:hover { border-color: var(--dim); background: #232c37; }
+.btn.danger:hover { border-color: var(--bad); color: var(--bad); }
+
+.repl {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.repl b { color: var(--text); font-weight: 600; }
+
+#status {
+  color: var(--dim);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--dim);
+}
+
+@media (max-width: 1100px) {
+  #app { grid-template-columns: 1fr; grid-template-areas: "top" "main"; }
+  aside { display: none; }
+}
+
+/* A source that has been taken off the board, and the note shown when none
+   are left. Quieter than a live source so the panel still reads as a list of
+   what is switched on. */
+.srcw.off {
+  border-style: dashed;
+  opacity: 0.75;
+}
+.srcw.off .cov { padding: 2px 0; }

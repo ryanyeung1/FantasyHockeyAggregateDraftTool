@@ -1,0 +1,17 @@
+node_modules/
+package-lock.json
+out/
+__pycache__/
+*.pyc
+
+# Dom's projections -- a paid product, deliberately not built into the board.
+# config/sources.json lists only free sources, so the build never reads these;
+# they stay in sources/ so you can still import them through the UI on your own
+# machine. Keep them out of the repo so publishing it does not redistribute them.
+sources/*Fantasy-Projections-Yahoo*
+sources/*Fantasy-Projections-Fantrax*
+
+# The free factual columns extracted from those workbooks -- positions and ages,
+# which are Yahoo's and Fantrax's own rulings rather than projection work -- ARE
+# tracked on purpose: the board needs them and the build works without the
+# workbooks present. See make_reference.py.

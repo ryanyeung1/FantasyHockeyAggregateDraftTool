@@ -1,0 +1,41 @@
+# Name alias table. LHS (as written by some source) resolves to RHS (canonical name).
+# Matching is done on normalized names, so casing/punctuation here is cosmetic.
+# When build.py finds a name it cannot join, it writes out/unmatched.csv with a
+# fuzzy suggestion. CHECK EACH ONE against the roster before pasting it here --
+# the suggester has proposed "Patrik Laine -> Patrick Kane" and "Ryan Reaves ->
+# Ryan Graves", both of which are different, real players.
+#
+# Note that Yahoo disambiguates duplicate names with a position suffix, e.g. it
+# lists both "Elias Pettersson" (C, VAN) and "Elias Pettersson (D)" (D, VAN).
+# Those must stay separate; only alias a bare name onto a suffixed one when the
+# bare form is genuinely absent, as with Daniil Tarasov below.
+alias,canonical
+Alexander Nikishin,Alex Nikishin
+Alexander Wennberg,Alex Wennberg
+Alexandre Texier,Alex Texier
+Dimitri Voronkov,Dmitri Voronkov
+Egor Chinakhov,Yegor Chinakhov
+J.J. Moser,Janis Moser
+Matthew Savoie,Matt Savoie
+Maxim Shabanov,Max Shabanov
+Nick Robertson,Nicholas Robertson
+Tommy Novak,Thomas Novak
+Anthony DeAngelo,Tony DeAngelo
+Alexander Kerfoot,Alex Kerfoot
+Alexander Romanov,Alex Romanov
+Alexandre Carrier,Alex Carrier
+Alexey Toropchenko,Alexei Toropchenko
+Jake Middleton,Jacob Middleton
+Will Borgen,William Borgen
+Daniil Tarasov,Daniil Tarasov (G)
+Zack Bolduc,Zachary Bolduc
+Emil Lilleberg,Emil Martinsen Lilleberg
+Benjamin Kindel,Ben Kindel
+Cameron York,Cam York
+Daniel Vladar,Dan Vladar
+Gabriel Perreault,Gabe Perreault
+Joshua Norris,Josh Norris
+Matthew Coronato,Matt Coronato
+Michael Anderson,Mikey Anderson
+William Cuylle,Will Cuylle
+Alexander Holtz,Alex Holtz

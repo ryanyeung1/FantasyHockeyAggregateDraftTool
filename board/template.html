@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft Board __SEASON__</title>
+<style>__CSS__</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="brand">Draft Board<small id="subtitle"></small></div>
+
+    <input id="search" type="search" autocomplete="off"
+           placeholder="Search player or team &mdash; or press / to jump here">
+
+    <div class="filters">
+      <button class="chip on" data-pos="ALL">All</button>
+      <button class="chip" data-pos="F">F</button>
+      <button class="chip" data-pos="C">C</button>
+      <button class="chip" data-pos="LW">LW</button>
+      <button class="chip" data-pos="RW">RW</button>
+      <button class="chip" data-pos="D">D</button>
+      <button class="chip" data-pos="G">G</button>
+      <button class="chip" data-pos="MINE">Mine</button>
+      <button class="chip" data-pos="ADJ" title="Only players you have adjusted">Adj</button>
+      <button class="chip" data-pos="DRAFTED" title="Only players already taken — by anyone, yours included">Drafted</button>
+      <button class="chip" data-pos="WATCH" title="Only players on your watch list">★ Watch</button>
+      <button class="chip" data-pos="AVOID" title="Only players you have marked do-not-draft">⊘ Avoid</button>
+    </div>
+
+    <span class="spacer"></span>
+
+    <label class="toggle" title="Recalculates VORP against the players still available and the roster spots still unfilled, instead of the full preseason pool. Off, VORP is fixed all draft. On, it updates after every pick.">
+      <input type="checkbox" id="dynamic"> Live scarcity
+    </label>
+    <label class="toggle">
+      <input type="checkbox" id="hide-drafted"> Hide drafted
+    </label>
+
+    <button class="btn" id="open-settings">Settings</button>
+    <span id="status"></span>
+  </header>
+
+  <main>
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </main>
+
+  <aside>
+    <section>
+      <h3>Best available <span class="hint">click to draft, double-click to add</span></h3>
+      <div class="bestpos" id="bestpos"></div>
+    </section>
+
+    <section>
+      <h3>My roster <span class="hint">double-click a row</span></h3>
+      <div class="slots" id="slots"></div>
+      <div class="rosterbar" id="rosterbar"></div>
+    </section>
+
+    <section>
+      <h3>Replacement level</h3>
+      <div class="repl" id="repl"></div>
+    </section>
+  </aside>
+</div>
+
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer-head">
+    <h2>Settings</h2>
+    <button class="close" id="close-settings">Close</button>
+  </div>
+
+  <h3>Source weights</h3>
+  <div id="weights"></div>
+  <div class="btnrow">
+    <button class="btn" id="import-source">Import projections…</button>
+    <input type="file" id="import-source-file" accept=".csv,.xlsx" hidden>
+  </div>
+  <div class="note" id="goalie-note" hidden></div>
+
+  <h3>Scoring</h3>
+  <div class="grid2" id="scoring"></div>
+
+  <h3>League</h3>
+  <div class="grid2" id="slots-cfg"></div>
+
+  <h3>Model</h3>
+  <div class="field wide">
+    <label for="gp-model">Games-played model</label>
+    <select id="gp-model">
+      <option value="rate_blended_gp">Rate × blended GP</option>
+      <option value="rate_source_gp">Rate × GP from one source</option>
+      <option value="totals">Straight totals</option>
+    </select>
+  </div>
+  <div class="field wide" id="gp-source-row" hidden>
+    <label for="gp-source">Games-played source</label>
+    <select id="gp-source"></select>
+  </div>
+  <div class="field wide">
+    <label for="repl-method" title="How the baseline that VORP is measured against gets found. Draft-based counts who actually comes off the board, including players taken for a position they are only eligible at; position-based uses the raw starting slots. Draft-based digs deeper and is usually the more honest baseline.">Replacement level</label>
+    <select id="repl-method">
+      <option value="draft">Draft-based (who actually goes)</option>
+      <option value="position">Position-based (starting slots)</option>
+    </select>
+  </div>
+  <div class="field wide">
+    <label for="repl-depth" title="Whether bench spots count as roster demand. Full roster prices players against every pick that will be made; starters only measures against the lineup you have to fill, which gives a shallower, tougher baseline.">Replacement depth</label>
+    <select id="repl-depth">
+      <option value="roster">Full roster (starters + bench)</option>
+      <option value="starters">Starters only</option>
+    </select>
+  </div>
+  <div class="field wide" id="playoff-window-row" hidden>
+    <label for="playoff-window" title="Which weeks count as the fantasy playoffs, for the second schedule mark on the Team column.">Fantasy playoff weeks</label>
+    <select id="playoff-window"></select>
+  </div>
+  <div class="field wide" id="eligibility-row" hidden>
+    <label for="eligibility">Position eligibility</label>
+    <select id="eligibility"></select>
+  </div>
+  <div class="field wide">
+    <label for="adp-source">ADP column</label>
+    <select id="adp-source"></select>
+  </div>
+  <div class="field">
+    <label for="tier-k" title="How big a gap in VORP has to be before it starts a new tier. Lower gives more, smaller tiers; higher keeps only the biggest cliffs. Measured in robust standard deviations of the gaps between players.">Tier sensitivity</label>
+    <input type="number" id="tier-k" step="0.1" min="0">
+  </div>
+  <div class="field">
+    <label for="min-gp">Minimum GP</label>
+    <input type="number" id="min-gp" step="1" min="0">
+  </div>
+
+  <h3>Adjustment tiers</h3>
+  <div class="note subtle">
+    How far each step moves a player's projected scoring. Applies to goals,
+    assists, points, shots, power play and +/− for skaters, and wins, losses,
+    saves and goals against for goalies — a boost always makes a player better,
+    so a goalie's losses and goals against go <em>down</em>. Hits, blocks, PIM
+    and faceoffs never move.
+  </div>
+  <div class="grid2" id="adjust-tiers">
+    <div class="field"><label for="adj-1">+ / −</label>
+      <input type="number" id="adj-1" step="0.01" min="0" max="1"></div>
+    <div class="field"><label for="adj-2">++ / −−</label>
+      <input type="number" id="adj-2" step="0.01" min="0" max="1"></div>
+    <div class="field"><label for="adj-3">+++ / −−−</label>
+      <input type="number" id="adj-3" step="0.01" min="0" max="1"></div>
+  </div>
+  <div class="btnrow">
+    <button class="btn danger" id="clear-adjust">Clear all adjustments</button>
+  </div>
+
+  <h3>Data</h3>
+  <div class="note subtle">
+    A snapshot holds everything — picks, your roster, adjustments and every
+    setting — in one file. This browser already saves your work automatically
+    and keeps it across rebuilds, so a snapshot is for moving to another machine
+    or keeping a backup before you experiment.
+  </div>
+  <div class="btnrow">
+    <button class="btn" id="export-csv">Export rankings CSV</button>
+    <button class="btn" id="export-draft">Save snapshot</button>
+    <button class="btn" id="import-draft">Load snapshot</button>
+    <input type="file" id="import-file" accept=".json" hidden>
+  </div>
+  <div class="btnrow">
+    <button class="btn" id="reset-settings">Reset settings</button>
+    <button class="btn" id="clear-marks">Clear marks</button>
+    <button class="btn danger" id="clear-draft">Clear draft</button>
+  </div>
+</div>
+
+<div class="modal" id="import-modal" hidden>
+  <div class="modal-box">
+    <div class="drawer-head">
+      <h2 id="import-title">Import projections</h2>
+      <button class="close" id="import-cancel">Cancel</button>
+    </div>
+
+    <div id="import-error" class="note" hidden></div>
+
+    <div class="grid2">
+      <div class="field wide">
+        <label for="import-name">Source name</label>
+        <input type="text" id="import-name">
+      </div>
+      <div class="field wide" id="import-sheet-row" hidden>
+        <label for="import-sheet">Sheet</label>
+        <select id="import-sheet"></select>
+      </div>
+      <div class="field">
+        <label for="import-header">Header row</label>
+        <input type="number" id="import-header" min="1" step="1">
+      </div>
+      <div class="field">
+        <label for="import-weight">Weight</label>
+        <input type="number" id="import-weight" min="0" max="3" step="0.1" value="1">
+      </div>
+      <div class="field wide check">
+        <label><input type="checkbox" id="import-per-game"> These are
+        <b>per-game rates</b>, not season totals</label>
+      </div>
+    </div>
+
+    <div class="note subtle" id="import-summary"></div>
+
+    <div class="mapcols" id="import-columns"></div>
+
+    <div class="btnrow">
+      <button class="btn" id="import-confirm">Import</button>
+      <button class="btn" id="import-cancel-2">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>window.DRAFT_DATA = __DATA__;</script>
+<script>__VALUATION__</script>
+<script>__IMPORTER__</script>
+<script>__APP__</script>
+</body>
+</html>

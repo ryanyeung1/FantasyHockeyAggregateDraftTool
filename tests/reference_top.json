@@ -1,0 +1,26 @@
+{
+  "_source": "Crome aggregate sheet (10 sources, points league, same scoring)",
+  "_note": "Values transcribed from the shared Google Sheet's 'Player Values - Pts' tab. They are NOT expected to match this build, which blends three sources rather than ten. The check is that the same names cluster at the top in a similar order; a large rank divergence points at a parsing or scoring bug.",
+  "players": [
+    {"name": "Nathan MacKinnon",  "rank": 1,  "fp": 584.57, "vorp": 268.43},
+    {"name": "Connor McDavid",    "rank": 2,  "fp": 573.49, "vorp": 257.35},
+    {"name": "Auston Matthews",   "rank": 3,  "fp": 564.96, "vorp": 248.82},
+    {"name": "Nikita Kucherov",   "rank": 4,  "fp": 544.24, "vorp": 230.05},
+    {"name": "Cale Makar",        "rank": 5,  "fp": 493.72, "vorp": 226.11},
+    {"name": "David Pastrnak",    "rank": 6,  "fp": 527.66, "vorp": 213.47},
+    {"name": "Leon Draisaitl",    "rank": 7,  "fp": 524.06, "vorp": 209.86},
+    {"name": "Brady Tkachuk",     "rank": 8,  "fp": 522.62, "vorp": 208.43},
+    {"name": "Connor Hellebuyck", "rank": 9,  "fp": 399.49, "vorp": 186.90},
+    {"name": "Kirill Kaprizov",   "rank": 10, "fp": 485.99, "vorp": 171.79},
+    {"name": "Moritz Seider",     "rank": 11, "fp": 436.96, "vorp": 169.34},
+    {"name": "Rasmus Dahlin",     "rank": 12, "fp": 434.34, "vorp": 166.73},
+    {"name": "MacKenzie Weegar",  "rank": 13, "fp": 432.47, "vorp": 164.86},
+    {"name": "Filip Forsberg",    "rank": 14, "fp": 464.80, "vorp": 150.61},
+    {"name": "Zach Werenski",     "rank": 15, "fp": 416.98, "vorp": 149.36},
+    {"name": "Sam Reinhart",      "rank": 16, "fp": 460.45, "vorp": 146.26},
+    {"name": "J.T. Miller",       "rank": 17, "fp": 458.72, "vorp": 144.52},
+    {"name": "Mikko Rantanen",    "rank": 18, "fp": 454.08, "vorp": 139.89},
+    {"name": "Jack Hughes",       "rank": 19, "fp": 450.31, "vorp": 136.12},
+    {"name": "Jack Eichel",       "rank": 20, "fp": 444.32, "vorp": 128.18}
+  ]
+}

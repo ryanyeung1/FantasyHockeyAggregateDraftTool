@@ -1,0 +1,12 @@
+{
+  "name": "fantasy-hockey-draft-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aggregated projection draft board. Node is only needed for the tests and the offline rankings CSV; the board itself runs standalone in a browser.",
+  "scripts": {
+    "test": "node tests/test_valuation.js && node tests/test_board_ui.js"
+  },
+  "devDependencies": {
+    "jsdom": "^16.7.0"
+  }
+}

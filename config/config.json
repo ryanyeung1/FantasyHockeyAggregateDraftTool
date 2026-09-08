@@ -1,0 +1,54 @@
+{
+  "season": "2026-27",
+  "games_in_season": 84,
+
+  "league": {
+    "teams": 12,
+    "slots": { "C": 2, "LW": 2, "RW": 2, "W": 0, "F": 0, "D": 4, "UTIL": 0, "G": 2, "BN": 4 }
+  },
+
+  "scoring": {
+    "G": 4, "A": 2.5, "PTS": 0, "PPG": 0, "PPP": 1, "SHG": 0, "SHP": 2,
+    "SOG": 0.4, "HIT": 0.5, "BLK": 0.6, "PM": 0, "PIM": 0, "GWG": 0,
+    "FOW": 0, "FOL": 0,
+    "W": 4, "L": -2, "OTL": 0, "SO": 5, "SV": 0.25, "SA": 0, "GA": -0.8,
+    "SV%": 0, "GAA": 0
+  },
+
+  "source_weights": { "AGN": 1, "AGB": 1, "DtZ": 1, "DFO": 1 },
+
+  "model": {
+    "gp_model": "rate_blended_gp",
+    "gp_source": "DtZ",
+    "adp_source": "average",
+    "eligibility": "yahoo",
+    "playoff_window": "skip",
+    "replacement_method": "draft",
+    "count_bench": true,
+    "_age_bands_comment": [
+      "Pre-prime and post-prime markers on the Age column. Ages come from",
+      "config/ages.csv where it has the player; these thresholds were",
+      "calibrated against that list's reference date (age at season start)."
+    ],
+    "age_bands": { "pre_prime_max": 24, "post_prime_min": 31 },
+    "tier_k": 1.0,
+    "min_gp": 0
+  },
+
+  "adjust": {
+    "_comment": [
+      "Manual +/- adjustments, matching the Yahoo sheet's Boost or Bust column.",
+      "tiers are the percentages for +/++/+++ (and their negatives).",
+      "",
+      "Only the stats listed here move. That is deliberate: a subjective boost is",
+      "an opinion about a player's SCORING, and hits, blocks, PIM and faceoffs are",
+      "role and style stats that do not rise when a player finishes better.",
+      "",
+      "SV% and GAA are excluded even though Yahoo lists them -- multiplying a save",
+      "percentage by 1.2 would push it past 1.000."
+    ],
+    "tiers": [0.05, 0.10, 0.20],
+    "skater_stats": ["G", "A", "PTS", "SOG", "PPG", "PPP", "PM", "GWG"],
+    "goalie_stats": ["W", "L", "SV", "GA"]
+  }
+}
