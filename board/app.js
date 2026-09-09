@@ -378,11 +378,17 @@
         return '<option value="' + esc(opt[0]) + '"' +
           (opt[0] === chosen ? " selected" : "") + ">" + esc(opt[1]) + "</option>";
       }).join("");
-      var note = col.note ? " · " + col.note : (col.duplicate ? " · second column for this stat" : "");
-      return '<div class="mapcol' + (col.uncertain ? " flag" : "") + '">' +
+      // The note gets its own line rather than riding on the sample. The
+      // sample is what tells two identically-named columns apart, so losing it
+      // to an ellipsis on exactly the cards flagged for review is backwards --
+      // and a long unwrappable line here is what forced the card wider than
+      // its grid track and pushed the whole dialog sideways.
+      var note = col.note || (col.duplicate ? "second column for this stat" : "");
+      return '<div class="mapcol' + (col.uncertain ? " mapcol-flag" : "") + '">' +
         '<div class="mapcol-head">' + esc(col.header || "(no heading)") +
         (col.uncertain ? ' <span class="mapcol-q">?</span>' : "") + "</div>" +
-        '<div class="mapcol-sample">' + esc(col.sample || "—") + esc(note) + "</div>" +
+        '<div class="mapcol-sample">' + esc(col.sample || "—") + "</div>" +
+        (note ? '<div class="mapcol-note">' + esc(note) + "</div>" : "") +
         '<select data-col="' + col.index + '">' + selects + "</select></div>";
     }).join("");
 
@@ -612,6 +618,19 @@
   function mergeSettings(saved) {
     var base = defaultSettings();
     if (!saved) return base;
+
+    // defaultSettings() only knows the built-in sources, and the loop below
+    // copies saved values for keys that already exist. An imported source's id
+    // ("IMP1-ab") is not one of them, so without seeding it here its weight is
+    // dropped on every reload and the slider silently returns to 0. load()
+    // restores state.imports and rebuilds the model before calling this, so
+    // model.sources already includes them. Seeded at 0, not 1: an import with
+    // no saved weight keeps today's behaviour rather than quietly gaining a
+    // say in a draft that is already under way.
+    ((model && model.sources) || []).forEach(function (source) {
+      if (base.weights[source.id] === undefined) base.weights[source.id] = 0;
+    });
+
     ["scoring", "weights", "slots"].forEach(function (group) {
       if (!saved[group]) return;
       for (var k in base[group]) {
@@ -626,7 +645,7 @@
     // Free-text settings are only ever compared against known ids, never
     // written into markup, but keep them to strings so nothing else can be
     // smuggled through as an object.
-    ["gpModel", "gpSource", "adpSource", "eligibility",
+    ["gpModel", "gpSource", "adpSource", "eligibility", "playoffWindow",
      "replacementMethod"].forEach(function (k) {
       if (saved[k] !== undefined) base[k] = String(saved[k]);
     });
@@ -1101,31 +1120,6 @@
       esc(row.team) + "</span>" + flag(team.offTier || 0) + flag(poTier);
   }
 
-  /* The schedule marks spelled out, for the panel that opens on a name --
-     the Tm column only has room for two glyphs and a tooltip. */
-  function scheduleNote(row) {
-    var team = SCHEDULE && SCHEDULE.teams ? SCHEDULE.teams[row.team] : null;
-    if (!team) return "";
-    var windowId = state.settings.playoffWindow;
-    var po = team.po && team.po[windowId];
-    var word = function (tier) {
-      return tier > 0 ? "favourable" : (tier < 0 ? "unfavourable" : "middling");
-    };
-    var parts = [];
-    if (team.off !== null && team.off !== undefined) {
-      parts.push("<b>Off-nights</b> " + fmt(team.off, 0) + " of " + fmt(team.games, 0) +
-        (team.offRank ? " (" + ordinal(team.offRank) + ")" : "") +
-        " — " + word(team.offTier));
-    }
-    if (po) {
-      parts.push("<b>Playoffs " + esc(windowLabel(windowId, true)) + "</b> " +
-        fmt(po.games, 0) + " games, " + fmt(po.off, 0) + " on off-nights" +
-        (po.rank ? " (" + ordinal(po.rank) + ")" : "") + " — " + word(po.tier));
-    }
-    if (!parts.length) return "";
-    return '<div class="schednote">' + parts.join(" &nbsp;·&nbsp; ") + "</div>";
-  }
-
   function windowLabel(id, brief) {
     var windows = (SCHEDULE && SCHEDULE.windows) || [];
     for (var i = 0; i < windows.length; i++) {
@@ -1251,8 +1245,6 @@
     }
 
     var html = '<tr class="detail"><td colspan="' + COLUMNS.length + '"><div class="detail-wrap">' +
-      "<h4>" + esc(row.name) + " — projection by source</h4>" +
-      scheduleNote(row) +
       '<table class="srccmp"><tr><td class="slabel"></td>';
     for (var h = 0; h < shown.length; h++) {
       html += "<th>" + esc(stats[shown[h]]) + "</th>";

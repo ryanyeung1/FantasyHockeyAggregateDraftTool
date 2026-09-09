@@ -233,14 +233,6 @@ td.left:hover .pexp { color: var(--accent); }
 .age.pre { color: var(--pre-prime); }
 .age.post { color: var(--post-prime); }
 
-/* Schedule summary in the panel that opens on a player's name. */
-.schednote {
-  color: var(--muted);
-  font-size: 11.5px;
-  margin: -2px 0 8px;
-}
-.schednote b { color: var(--text); font-weight: 600; }
-
 /* The schedule marks carry their own leading margin. */
 
 /* Direction markers on the numeric columns. Always rendered, empty when there
@@ -248,7 +240,12 @@ td.left:hover .pexp { color: var(--accent); }
    of shifting on the rows that happen to carry one. Colour alone would be no
    signal at all to a colourblind reader; this is the channel that always
    works. */
-.flag {
+/* Scoped to table cells on purpose. As a bare global, ".flag" also matched the
+   import dialog's uncertain-column card -- which had used that class name
+   since long before these markers existed -- and shrank it to 9px, collapsing
+   the card to a one-character column with its note running vertically down
+   it. */
+td .flag {
   display: inline-block;
   width: 9px;
   margin-left: 3px;   /* was a literal space; a margin is a width the header can match */
@@ -376,7 +373,7 @@ tr.avoid .pname { color: var(--muted); }
   padding: 6px 8px 7px;
 }
 
-.mapcol.flag { border-color: var(--warn); }
+.mapcol.mapcol-flag { border-color: var(--warn); }
 
 .mapcol-head {
   font-weight: 600;
@@ -396,6 +393,21 @@ tr.avoid .pname { color: var(--muted); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Why a column is flagged. Ordinary wrapping prose, on its own line rather
+   than sharing the sample's nowrap line -- that shared line was what forced
+   the card wider than its grid track and pushed the dialog sideways.
+   Deliberately NOT overflow-wrap:anywhere: that drops the text's min-content
+   width to a single character, and the card collapses to a one-character
+   column with the note running vertically down it. These notes are prose with
+   spaces in, so normal wrapping is all they need. */
+.mapcol-note {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--warn);
+  margin: -3px 0 5px;
+  white-space: normal;
 }
 
 .mapcol select {

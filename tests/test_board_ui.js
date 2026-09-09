@@ -245,6 +245,13 @@ setTimeout(() => {
     check('shows every source', /Datsyuk/.test(detail.textContent) &&
           /Apples/.test(detail.textContent) && /Daily Faceoff/.test(detail.textContent));
     check('shows the blended line', /Blended/.test(detail.textContent));
+    // Projections only: the player's name and their schedule are already on
+    // the row you clicked, so repeating them here is just noise above the
+    // thing you opened the panel for.
+    check('opens straight into the table, with no heading or schedule blurb',
+          !detail.querySelector('h4') && !detail.querySelector('.schednote') &&
+          detail.querySelector('.detail-wrap').firstElementChild.tagName === 'TABLE',
+          detail.querySelector('.detail-wrap').firstElementChild.tagName);
   }
 
   console.log('\n--- settings drawer ---');
@@ -983,10 +990,48 @@ setTimeout(() => {
 
     // Only the genuinely ambiguous columns are flagged: the second PTS (fantasy
     // points, which does not equal goals + assists) and GS feeding GP.
-    const flagged = $$('.mapcol.flag .mapcol-head').map(e => e.textContent.replace('?', '').trim());
+    const flagged = $$('.mapcol-flag .mapcol-head').map(e => e.textContent.replace('?', '').trim());
     check('the ambiguous columns are flagged, and only those',
           flagged.length === 2 && flagged.indexOf('PTS') >= 0 && flagged.indexOf('GS') >= 0,
           flagged.join(' | '));
+
+    // A flagged card's note used to ride on the sample line, which is
+    // white-space:nowrap. That one unwrappable string set the card's minimum
+    // width, the 1fr grid track could not shrink below it, and the whole
+    // dialog spilled sideways past its 760px box. jsdom cannot measure that,
+    // so pin the two things that prevent it.
+    const flagCards = $$('.mapcol-flag');
+    check('a flagged note sits on its own element, not on the sample line',
+          flagCards.length > 0 && flagCards.every(c => !!c.querySelector('.mapcol-note')),
+          flagCards.map(c => c.innerHTML.slice(0, 40)).join(' | '));
+    check('so the sample survives on exactly the cards you need it',
+          flagCards.every(c => c.querySelector('.mapcol-sample')
+            .textContent.indexOf('·') === -1),
+          flagCards.map(c => c.querySelector('.mapcol-sample').textContent).join(' | '));
+    // overflow-wrap:anywhere drops the text's min-content width to a single
+    // character; with it the flagged card collapsed to a one-character column
+    // and the note ran vertically down it. break-word does not do this, and
+    // these notes are prose with spaces, so neither is needed.
+    check('the note wraps on words, not on every character',
+          /\.mapcol-note\s*\{[^}]*white-space:\s*normal/.test(pageCss) &&
+          !/\.mapcol-note\s*\{[^}]*overflow-wrap:\s*anywhere/.test(pageCss));
+    // The card keeps the browser's default grid-item sizing: the spill is
+    // fixed at source by moving the note off the nowrap line, so nothing here
+    // should be overriding widths.
+    // The real bug behind two rounds of wrong guesses: the dialog had used
+    // class "flag" for an uncertain column since long before the board's
+    // direction markers took the same name. A bare `.flag { width: 9px }`
+    // then matched the card too and collapsed it to a 9px column with the
+    // note running vertically down it.
+    check('the uncertain card does not collide with the direction markers',
+          flagCards.every(c => !c.matches('.flag')),
+          flagCards.map(c => c.className).join(' | '));
+    check('and the marker rule is scoped to table cells',
+          /td \.flag\s*\{/.test(pageCss) && !/^\.flag\s*\{/m.test(pageCss));
+    // Nothing in the import dialog should carry a bare marker class.
+    check('no import-dialog element carries the marker class',
+          $$('#import-modal .flag').length === 0,
+          $$('#import-modal .flag').length + ' found');
 
     click($('#import-confirm'));
     setTimeout(function () {
@@ -1280,6 +1325,103 @@ setTimeout(() => {
                 teams && teams.getAttribute('value'));
           check('the board still renders rather than erroring',
                 rowsOf(d5).length > 500, rowsOf(d5).length + ' rows');
+          importedWeightSurvives();
+        });
+      }
+
+      // An imported source's weight was saved but thrown away on load:
+      // mergeSettings only copied keys already in the defaults, and an
+      // import's id is not one of them, so every reload reset the slider to 0.
+      function importedWeightSurvives() {
+        bootWith({
+          version: 2, drafted: {}, mine: {}, adjust: {}, marks: {}, removed: [],
+          imports: [{ id: 'IMP1-ab', name: 'My Projections',
+                      rows: [{ k: 'nathan mackinnon', n: 'Nathan MacKinnon',
+                               t: 'COL', p: 'C', s: { GP: 82, G: 50, A: 60 } }] }],
+          settings: { weights: { DtZ: 1, DFO: 1, AGN: 1, AGB: 1, 'IMP1-ab': 2 } }
+        }, (w6, d6) => {
+          d6.getElementById('open-settings').dispatchEvent(
+            new w6.MouseEvent('click', { bubbles: true }));
+          const sliders = Array.from(
+            d6.querySelectorAll('#weights input[type=range]'));
+          const imported = sliders.find(
+            sl => sl.getAttribute('data-weight') === 'IMP1-ab');
+          check('an imported source comes back with its saved weight',
+                imported && imported.value === '2', imported && imported.value);
+          check('and the built-in weights are unaffected',
+                sliders.filter(sl => sl.getAttribute('data-weight') !== 'IMP1-ab')
+                  .every(sl => sl.value === '1'),
+                sliders.map(sl => sl.value).join(','));
+          hostileImportedWeight();
+        });
+      }
+
+      // Accepting weights for imported ids widened WHICH keys are read, not
+      // what values are allowed through them -- the numeric coercion has to
+      // still hold on the newly accepted key.
+      function hostileImportedWeight() {
+        bootWith({
+          version: 2, drafted: {}, mine: {}, adjust: {}, marks: {}, removed: [],
+          imports: [{ id: 'IMP1-ab', name: 'X',
+                      rows: [{ k: 'nathan mackinnon', n: 'Nathan MacKinnon',
+                               t: 'COL', p: 'C', s: { GP: 82, G: 50 } }] }],
+          settings: { weights: { 'IMP1-ab': '"><img src=x onerror=window.__pwned=1>' } }
+        }, (w7, d7) => {
+          d7.getElementById('open-settings').dispatchEvent(
+            new w7.MouseEvent('click', { bubbles: true }));
+          const sl = Array.from(d7.querySelectorAll('#weights input[type=range]'))
+            .find(x => x.getAttribute('data-weight') === 'IMP1-ab');
+          check('a hostile weight on an imported id is still coerced',
+                sl && !isNaN(parseFloat(sl.value)), sl && sl.value);
+          check('and injects nothing into the weights panel',
+                !/<img[^>]*onerror/i.test(d7.getElementById('weights').innerHTML) &&
+                w7.__pwned === undefined);
+          everySettingRoundTrips();
+        });
+      }
+
+      // Two settings have now been silently dropped on load -- an imported
+      // source's weight, and the playoff window -- because each restore list
+      // has to name its keys and nothing checked that they all did. Save every
+      // setting at a non-default value and read each control back, so the next
+      // setting that forgets to register fails here instead of in a draft.
+      function everySettingRoundTrips() {
+        const want = {
+          'scoring G':        ['[data-scoring="G"]',   'value', '9'],
+          'weights DtZ':      ['[data-weight="DtZ"]',  'value', '0.5'],
+          'slots C':          ['[data-slot="C"]',      'value', '3'],
+          teams:              ['[data-teams]',          'value', '14'],
+          gpModel:            ['#gp-model',             'value', 'totals'],
+          gpSource:           ['#gp-source',            'value', 'DFO'],
+          adpSource:          ['#adp-source',           'value', 'yahoo'],
+          eligibility:        ['#eligibility',          'value', 'fantrax'],
+          playoffWindow:      ['#playoff-window',       'value', 'full'],
+          replacementMethod:  ['#repl-method',          'value', 'position'],
+          countBench:         ['#repl-depth',           'value', 'starters'],
+          tierK:              ['#tier-k',               'value', '2.5'],
+          minGP:              ['#min-gp',               'value', '20'],
+          'adjust tier 1':    ['#adj-1',                'value', '0.11']
+        };
+        bootWith({
+          version: 2, drafted: {}, mine: {}, adjust: {}, marks: {},
+          imports: [], removed: [],
+          settings: {
+            scoring: { G: 9 }, weights: { DtZ: 0.5 }, slots: { C: 3 },
+            teams: 14, gpModel: 'totals', gpSource: 'DFO', adpSource: 'yahoo',
+            eligibility: 'fantrax', playoffWindow: 'full',
+            replacementMethod: 'position', countBench: false,
+            tierK: 2.5, minGP: 20, adjust: { tiers: [0.11, 0.12, 0.13] }
+          }
+        }, (w8, d8) => {
+          d8.getElementById('open-settings').dispatchEvent(
+            new w8.MouseEvent('click', { bubbles: true }));
+          const missed = Object.keys(want).filter(name => {
+            const el = d8.querySelector(want[name][0]);
+            return !el || String(el[want[name][1]]) !== want[name][2];
+          });
+          check('every setting survives a reload', missed.length === 0,
+                missed.length ? 'dropped: ' + missed.join(', ') : 'all ' +
+                  Object.keys(want).length + ' restored');
           finish();
         });
       }
