@@ -126,6 +126,45 @@ test("fantasyPoints applies per-stat values and ignores nulls", function () {
   near(V.fantasyPoints(line, model, {}), 0, "empty scoring scores nothing");
 });
 
+/* Defence points: an extra award on every point a defenceman scores, on top of
+   the goal and assist values. The one positional term in the scoring. */
+
+var withPts = V.createModel({
+  meta: {}, stats: ["GP", "G", "A", "PTS"], counting_stats: ["G", "A", "PTS"],
+  rate_stats: [], sources: [{ id: "S1", name: "S1" }],
+  players: [{ n: "D Man", t: "COL", p: ["D"], k: "d man",
+              s: { S1: [80, 10, 30, 40] } }],
+  config: {}
+});
+
+test("defence points award on top, for defencemen only", function () {
+  var line = [80, 10, 30, 40];
+  var scoring = { G: 4, A: 2.5, DPT: 1 };
+  // 10*4 + 30*2.5 = 115 either way; the D bonus is the 40 points on top.
+  near(V.fantasyPoints(line, withPts, scoring, false), 115, "a forward gets nothing extra");
+  near(V.fantasyPoints(line, withPts, scoring, true), 155, "a defenceman gets PTS x DPT");
+});
+
+test("defence points do nothing when the value is zero", function () {
+  var line = [80, 10, 30, 40];
+  near(V.fantasyPoints(line, withPts, { G: 4, A: 2.5, DPT: 0 }, true), 115,
+       "the category is off by default and must cost nothing");
+});
+
+test("defence points fall back to goals + assists without a points column", function () {
+  // An imported file may map G and A but no PTS. Awarding nothing there would
+  // look like the setting had been ignored.
+  near(V.fantasyPoints([80, 10, 30], model, { DPT: 1 }, true), 40, "10 + 30");
+  near(V.fantasyPoints([80, 10, null], model, { DPT: 1 }, true), 10, "missing assists count as none");
+  near(V.fantasyPoints([80, null, null], model, { DPT: 1 }, true), 0, "no goals or assists, no award");
+});
+
+test("defence points scale with the value", function () {
+  var line = [80, 10, 30, 40];
+  near(V.fantasyPoints(line, withPts, { DPT: 0.5 }, true), 20, "40 * 0.5");
+  near(V.fantasyPoints(line, withPts, { DPT: -1 }, true), -40, "a negative value is honoured too");
+});
+
 /* -------------------------------------------------------- replacement level */
 
 test("positionalSlots reproduces the reference sheet's standard league", function () {

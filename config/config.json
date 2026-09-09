@@ -7,12 +7,23 @@
     "slots": { "C": 2, "LW": 2, "RW": 2, "W": 0, "F": 0, "D": 4, "UTIL": 0, "G": 2, "BN": 4 }
   },
 
+  "_scoring_comment": [
+    "DPT is defence points: an extra award on every point (G+A) a defenceman",
+    "scores, on top of the goal and assist values -- the rule Dom's sheet",
+    "applies as PTS x value on defencemen only. It is a scoring modifier, not",
+    "a stat, so it is deliberately absent from sources.json 'stats'.",
+    "",
+    "Every key in 'scoring' becomes an input in the settings panel, so notes",
+    "belong out here rather than inside it."
+  ],
+
   "scoring": {
     "G": 4, "A": 2.5, "PTS": 0, "PPG": 0, "PPP": 1, "SHG": 0, "SHP": 2,
     "SOG": 0.4, "HIT": 0.5, "BLK": 0.6, "PM": 0, "PIM": 0, "GWG": 0,
     "FOW": 0, "FOL": 0,
     "W": 4, "L": -2, "OTL": 0, "SO": 5, "SV": 0.25, "SA": 0, "GA": -0.8,
-    "SV%": 0, "GAA": 0
+    "SV%": 0, "GAA": 0,
+    "DPT": 0
   },
 
   "source_weights": { "AGN": 1, "AGB": 1, "DtZ": 1, "DFO": 1 },

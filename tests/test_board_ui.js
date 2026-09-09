@@ -262,8 +262,35 @@ setTimeout(() => {
   // Two sources project goalies now, so the 'weights are inert' notice must go.
   check('goalie-only notice is gone', $('#goalie-note').hidden);
   check('adjustment tier inputs rendered', $$('#adjust-tiers input').length === 3);
-  check('scoring inputs rendered', $$('#scoring input').length === 24,
+  check('scoring inputs rendered', $$('#scoring input').length === 25,
         $$('#scoring input').length + ' inputs');
+  // Defence points is the one positional scoring term: it must move
+  // defencemen by exactly their points and leave everyone else alone.
+  const fpOf = (name) => {
+    const r = $$('#rows tr[data-id]').find(
+      x => x.querySelector('.pname').textContent === name);
+    return r ? parseFloat(cellOf(r, 'FanPts').textContent) : null;
+  };
+  const dptInput = $('[data-scoring="DPT"]');
+  check('the D-points category has an input', !!dptInput);
+  check('labelled readably rather than as a raw key',
+        dptInput.closest('.field').querySelector('label').textContent.trim() === 'D pts',
+        dptInput.closest('.field').querySelector('label').textContent);
+  check('and defaults to 0 so no existing board changes',
+        parseFloat(dptInput.value) === 0, dptInput.value);
+  const dptDBefore = fpOf('Cale Makar');
+  const dptFBefore = fpOf('Nathan MacKinnon');
+  dptInput.value = '1';
+  fire(dptInput, 'input');
+  check('setting it raises a defenceman', fpOf('Cale Makar') > dptDBefore,
+        dptDBefore + ' -> ' + fpOf('Cale Makar'));
+  check('and leaves a forward untouched', fpOf('Nathan MacKinnon') === dptFBefore,
+        dptFBefore + ' -> ' + fpOf('Nathan MacKinnon'));
+  dptInput.value = '0';
+  fire(dptInput, 'input');
+  check('and clearing it restores both', fpOf('Cale Makar') === dptDBefore &&
+        fpOf('Nathan MacKinnon') === dptFBefore);
+
   check('league inputs rendered', $$('#slots-cfg input').length === 10,
         $$('#slots-cfg input').length + ' inputs');
 
@@ -1388,6 +1415,7 @@ setTimeout(() => {
       function everySettingRoundTrips() {
         const want = {
           'scoring G':        ['[data-scoring="G"]',   'value', '9'],
+          'scoring DPT':      ['[data-scoring="DPT"]', 'value', '1.5'],
           'weights DtZ':      ['[data-weight="DtZ"]',  'value', '0.5'],
           'slots C':          ['[data-slot="C"]',      'value', '3'],
           teams:              ['[data-teams]',          'value', '14'],
@@ -1406,7 +1434,7 @@ setTimeout(() => {
           version: 2, drafted: {}, mine: {}, adjust: {}, marks: {},
           imports: [], removed: [],
           settings: {
-            scoring: { G: 9 }, weights: { DtZ: 0.5 }, slots: { C: 3 },
+            scoring: { G: 9, DPT: 1.5 }, weights: { DtZ: 0.5 }, slots: { C: 3 },
             teams: 14, gpModel: 'totals', gpSource: 'DFO', adpSource: 'yahoo',
             eligibility: 'fantrax', playoffWindow: 'full',
             replacementMethod: 'position', countBench: false,

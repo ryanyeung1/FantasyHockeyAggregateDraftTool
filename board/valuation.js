@@ -180,7 +180,11 @@
 
   /* ----------------------------------------------------------------- scoring */
 
-  function fantasyPoints(line, model, scoring) {
+  /* isDefence drives the one positional term in the scoring: DPT awards extra
+     on every point a defenceman scores, on top of the goal and assist values.
+     It is not a stat any source publishes -- it is absent from model.stats on
+     purpose, which is also what keeps the loop below from counting it. */
+  function fantasyPoints(line, model, scoring, isDefence) {
     var total = 0;
     var stats = model.stats;
     for (var i = 0; i < stats.length; i++) {
@@ -190,7 +194,24 @@
       if (v === null || v === undefined) continue;
       total += v * pts;
     }
+    if (isDefence && scoring.DPT) {
+      var points = statValue(line, model, 'PTS');
+      if (points === null) {
+        // An imported file may map goals and assists without a points column.
+        // Awarding nothing there would look like the setting was ignored.
+        var g = statValue(line, model, 'G');
+        if (g !== null) points = g + (statValue(line, model, 'A') || 0);
+      }
+      if (points !== null) total += points * scoring.DPT;
+    }
     return total;
+  }
+
+  function statValue(line, model, stat) {
+    var i = model.statIndex[stat];
+    if (i === undefined) return null;
+    var v = line[i];
+    return (v === null || v === undefined) ? null : v;
   }
 
   /* ------------------------------------------------------- replacement level */
@@ -619,7 +640,7 @@
       var level = adjustments[player.id] || 0;
       var adjDelta = 0;
       if (level) {
-        var before = fantasyPoints(line, model, scoring);
+        var before = fantasyPoints(line, model, scoring, elig.posSet.D);
         line = applyAdjustment(line, model, level, {
           adjust: settings.adjust,
           scoring: scoring,
@@ -630,10 +651,10 @@
         // moves all four of their stats and two of those are penalties, so a
         // 5% tier can be worth 9% of their total. Reporting the real number
         // keeps that visible instead of surprising.
-        adjDelta = fantasyPoints(line, model, scoring) - before;
+        adjDelta = fantasyPoints(line, model, scoring, elig.posSet.D) - before;
       }
 
-      var fp = fantasyPoints(line, model, scoring);
+      var fp = fantasyPoints(line, model, scoring, elig.posSet.D);
       rows.push({
         id: player.id,
         name: player.name,

@@ -1403,6 +1403,14 @@
 
   /* ---------------------------------------------------------------- settings */
 
+  /* Scoring keys are stat codes and read fine as-is, apart from the ones that
+     are not stats at all. [display name, explanation]. */
+  var SCORING_LABELS = {
+    DPT: ["D pts", "Defence points: an extra award on every point a defenceman " +
+                   "scores, on top of the goals and assists values above. " +
+                   "Forwards and goalies are unaffected."]
+  };
+
   function renderSettings() {
     var settings = state.settings;
 
@@ -1456,7 +1464,10 @@
     var scoring = "";
     for (var stat in settings.scoring) {
       if (!Object.prototype.hasOwnProperty.call(settings.scoring, stat)) continue;
-      scoring += '<div class="field"><label>' + esc(stat) + "</label>" +
+      var label = SCORING_LABELS[stat];
+      scoring += '<div class="field"><label' +
+        (label ? ' title="' + esc(label[1]) + '"' : "") + ">" +
+        esc(label ? label[0] : stat) + "</label>" +
         '<input type="number" step="0.05" data-scoring="' + esc(stat) + '" value="' +
         esc(settings.scoring[stat]) + '"></div>';
     }

@@ -36,6 +36,19 @@ Yahoo projects a real injury discount (77.6 games on average). Three options:
 
 **3. Score it.** `FanPts = Σ(stat × your league's point value)`.
 
+One scoring category is positional rather than a plain stat: **D pts** (`DPT`)
+awards extra on every point a defenceman scores, on top of the goal and assist
+values — `PTS × value`, defencemen only, matching how the source workbook
+applies it. It ships at **0**, so it costs nothing until you set it.
+
+It applies to anyone **D-eligible** under the current eligibility ruling, so it
+follows that setting like everything else. On the default Yahoo ruling no
+player is D-eligible and something else, so the distinction is academic today;
+Fantrax introduces exactly one. Because it reads the blended `PTS`, a manual
+`Adj` boost flows through it automatically. Where an imported source maps goals
+and assists but no points column, it falls back to `G + A` rather than silently
+awarding nothing.
+
 **4. Find replacement level.** Two methods:
 
 - **Draft-based** *(default)* — slot counts alone understate forward scarcity.
@@ -663,7 +676,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **241 UI checks** — the built page loaded in a headless DOM and driven through
+- **247 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.
