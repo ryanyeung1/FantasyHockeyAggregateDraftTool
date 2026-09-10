@@ -262,7 +262,7 @@ setTimeout(() => {
   // Two sources project goalies now, so the 'weights are inert' notice must go.
   check('goalie-only notice is gone', $('#goalie-note').hidden);
   check('adjustment tier inputs rendered', $$('#adjust-tiers input').length === 3);
-  check('scoring inputs rendered', $$('#scoring input').length === 25,
+  check('scoring inputs rendered', $$('#scoring input').length === 26,
         $$('#scoring input').length + ' inputs');
   // Defence points is the one positional scoring term: it must move
   // defencemen by exactly their points and leave everyone else alone.
@@ -290,6 +290,29 @@ setTimeout(() => {
   fire(dptInput, 'input');
   check('and clearing it restores both', fpOf('Cale Makar') === dptDBefore &&
         fpOf('Nathan MacKinnon') === dptFBefore);
+
+  // The second positional category: points per goalie start, which the board
+  // keeps as their GP. Negative is a real setting, so check that direction too.
+  const gsInput = $('[data-scoring="GS"]');
+  check('the goalie-starts category has an input', !!gsInput);
+  check('and defaults to 0', parseFloat(gsInput.value) === 0, gsInput.value);
+  const gBefore = fpOf('Connor Hellebuyck');
+  const sBefore = fpOf('Cale Makar');
+  gsInput.value = '1';
+  fire(gsInput, 'input');
+  check('setting it raises a goalie', fpOf('Connor Hellebuyck') > gBefore,
+        gBefore + ' -> ' + fpOf('Connor Hellebuyck'));
+  check('and leaves a skater untouched', fpOf('Cale Makar') === sBefore,
+        sBefore + ' -> ' + fpOf('Cale Makar'));
+  gsInput.value = '-1';
+  fire(gsInput, 'input');
+  check('a negative value charges the goalie instead',
+        fpOf('Connor Hellebuyck') < gBefore,
+        gBefore + ' -> ' + fpOf('Connor Hellebuyck'));
+  gsInput.value = '0';
+  fire(gsInput, 'input');
+  check('and clearing it restores both', fpOf('Connor Hellebuyck') === gBefore &&
+        fpOf('Cale Makar') === sBefore);
 
   check('league inputs rendered', $$('#slots-cfg input').length === 10,
         $$('#slots-cfg input').length + ' inputs');
@@ -1416,6 +1439,7 @@ setTimeout(() => {
         const want = {
           'scoring G':        ['[data-scoring="G"]',   'value', '9'],
           'scoring DPT':      ['[data-scoring="DPT"]', 'value', '1.5'],
+          'scoring GS':       ['[data-scoring="GS"]',  'value', '-0.5'],
           'weights DtZ':      ['[data-weight="DtZ"]',  'value', '0.5'],
           'slots C':          ['[data-slot="C"]',      'value', '3'],
           teams:              ['[data-teams]',          'value', '14'],
@@ -1434,7 +1458,7 @@ setTimeout(() => {
           version: 2, drafted: {}, mine: {}, adjust: {}, marks: {},
           imports: [], removed: [],
           settings: {
-            scoring: { G: 9, DPT: 1.5 }, weights: { DtZ: 0.5 }, slots: { C: 3 },
+            scoring: { G: 9, DPT: 1.5, GS: -0.5 }, weights: { DtZ: 0.5 }, slots: { C: 3 },
             teams: 14, gpModel: 'totals', gpSource: 'DFO', adpSource: 'yahoo',
             eligibility: 'fantrax', playoffWindow: 'full',
             replacementMethod: 'position', countBench: false,

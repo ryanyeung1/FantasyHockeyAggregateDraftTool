@@ -141,28 +141,59 @@ test("defence points award on top, for defencemen only", function () {
   var line = [80, 10, 30, 40];
   var scoring = { G: 4, A: 2.5, DPT: 1 };
   // 10*4 + 30*2.5 = 115 either way; the D bonus is the 40 points on top.
-  near(V.fantasyPoints(line, withPts, scoring, false), 115, "a forward gets nothing extra");
-  near(V.fantasyPoints(line, withPts, scoring, true), 155, "a defenceman gets PTS x DPT");
+  near(V.fantasyPoints(line, withPts, scoring, {}), 115, "a forward gets nothing extra");
+  near(V.fantasyPoints(line, withPts, scoring, { D: true }), 155, "a defenceman gets PTS x DPT");
 });
 
 test("defence points do nothing when the value is zero", function () {
   var line = [80, 10, 30, 40];
-  near(V.fantasyPoints(line, withPts, { G: 4, A: 2.5, DPT: 0 }, true), 115,
+  near(V.fantasyPoints(line, withPts, { G: 4, A: 2.5, DPT: 0 }, { D: true }), 115,
        "the category is off by default and must cost nothing");
 });
 
 test("defence points fall back to goals + assists without a points column", function () {
   // An imported file may map G and A but no PTS. Awarding nothing there would
   // look like the setting had been ignored.
-  near(V.fantasyPoints([80, 10, 30], model, { DPT: 1 }, true), 40, "10 + 30");
-  near(V.fantasyPoints([80, 10, null], model, { DPT: 1 }, true), 10, "missing assists count as none");
-  near(V.fantasyPoints([80, null, null], model, { DPT: 1 }, true), 0, "no goals or assists, no award");
+  near(V.fantasyPoints([80, 10, 30], model, { DPT: 1 }, { D: true }), 40, "10 + 30");
+  near(V.fantasyPoints([80, 10, null], model, { DPT: 1 }, { D: true }), 10, "missing assists count as none");
+  near(V.fantasyPoints([80, null, null], model, { DPT: 1 }, { D: true }), 0, "no goals or assists, no award");
+});
+
+/* Goalie starts: points for every game a goalie starts, which the board keeps
+   as their GP. The second positional term, and the one most likely to be set
+   negative -- plenty of leagues charge per start. */
+
+test("goalie starts pay on GP, for goalies only", function () {
+  var line = [60, 0, 0];   // GP, G, A
+  near(V.fantasyPoints(line, model, { GS: 1 }, { G: true }), 60, "60 starts x 1");
+  near(V.fantasyPoints(line, model, { GS: 1 }, { D: true }), 0, "a skater gets nothing");
+  near(V.fantasyPoints(line, model, { GS: 1 }, {}), 0, "no position, no award");
+});
+
+test("a negative goalie-start value charges rather than pays", function () {
+  // A per-start penalty is a real league setting, not an input error.
+  near(V.fantasyPoints([60, 0, 0], model, { GS: -0.5 }, { G: true }), -30, "60 x -0.5");
+});
+
+test("goalie starts do nothing when the value is zero", function () {
+  near(V.fantasyPoints([60, 0, 0], model, { GS: 0 }, { G: true }), 0,
+       "the category is off by default and must cost nothing");
+});
+
+test("the two positional categories do not interfere", function () {
+  var line = [80, 10, 30, 40];   // GP, G, A, PTS
+  var scoring = { DPT: 1, GS: 1 };
+  near(V.fantasyPoints(line, withPts, scoring, { D: true }), 40, "a defenceman gets PTS only");
+  near(V.fantasyPoints(line, withPts, scoring, { G: true }), 80, "a goalie gets GP only");
+  // Nothing on this board is both, but the maths should not double-count if
+  // some future eligibility list ever says otherwise.
+  near(V.fantasyPoints(line, withPts, scoring, { D: true, G: true }), 120, "both terms, once each");
 });
 
 test("defence points scale with the value", function () {
   var line = [80, 10, 30, 40];
-  near(V.fantasyPoints(line, withPts, { DPT: 0.5 }, true), 20, "40 * 0.5");
-  near(V.fantasyPoints(line, withPts, { DPT: -1 }, true), -40, "a negative value is honoured too");
+  near(V.fantasyPoints(line, withPts, { DPT: 0.5 }, { D: true }), 20, "40 * 0.5");
+  near(V.fantasyPoints(line, withPts, { DPT: -1 }, { D: true }), -40, "a negative value is honoured too");
 });
 
 /* -------------------------------------------------------- replacement level */

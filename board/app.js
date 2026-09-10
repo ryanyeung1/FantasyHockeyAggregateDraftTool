@@ -1408,7 +1408,10 @@
   var SCORING_LABELS = {
     DPT: ["D pts", "Defence points: an extra award on every point a defenceman " +
                    "scores, on top of the goals and assists values above. " +
-                   "Forwards and goalies are unaffected."]
+                   "Forwards and goalies are unaffected."],
+    GS: ["GS", "Goalie starts: points for every game a goalie starts, which is " +
+               "their GP on the board. Skaters are unaffected. Set it negative " +
+               "if your league charges per start rather than paying for one."]
   };
 
   function renderSettings() {

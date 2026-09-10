@@ -36,7 +36,7 @@ Yahoo projects a real injury discount (77.6 games on average). Three options:
 
 **3. Score it.** `FanPts = Σ(stat × your league's point value)`.
 
-One scoring category is positional rather than a plain stat: **D pts** (`DPT`)
+Two scoring categories are positional rather than plain stats. **D pts** (`DPT`)
 awards extra on every point a defenceman scores, on top of the goal and assist
 values — `PTS × value`, defencemen only, matching how the source workbook
 applies it. It ships at **0**, so it costs nothing until you set it.
@@ -48,6 +48,18 @@ Fantrax introduces exactly one. Because it reads the blended `PTS`, a manual
 `Adj` boost flows through it automatically. Where an imported source maps goals
 and assists but no points column, it falls back to `G + A` rather than silently
 awarding nothing.
+
+**GS** (`GS`) pays per game a goalie starts — `GP × value`, goalies only, and
+also 0 by default. Negative values are meaningful and supported: plenty of
+leagues charge per start rather than paying for one.
+
+Worth knowing what that number is: the board keeps a goalie's starts in `GP`,
+but the two goalie sources do not publish the same thing. **DtZ publishes `GP`
+(appearances); Daily Faceoff publishes `GS` (starts)**, and both are mapped
+onto the one stat. So the category pays on a blend of the two. For the 64
+goalies both project, the mean gap is 3.8 games — mostly the sources
+disagreeing about workload rather than the appearances-versus-starts
+distinction (Devon Levi: DtZ 25, Daily Faceoff 10).
 
 **4. Find replacement level.** Two methods:
 
@@ -676,7 +688,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **247 UI checks** — the built page loaded in a headless DOM and driven through
+- **253 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

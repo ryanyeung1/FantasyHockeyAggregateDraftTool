@@ -13,6 +13,10 @@
     "applies as PTS x value on defencemen only. It is a scoring modifier, not",
     "a stat, so it is deliberately absent from sources.json 'stats'.",
     "",
+    "GS is goalie starts: points per game a goalie starts, which is the board's",
+    "GP for goalies. Also positional, also absent from 'stats'. Negative values",
+    "are meaningful -- some leagues charge per start.",
+    "",
     "Every key in 'scoring' becomes an input in the settings panel, so notes",
     "belong out here rather than inside it."
   ],
@@ -23,7 +27,8 @@
     "FOW": 0, "FOL": 0,
     "W": 4, "L": -2, "OTL": 0, "SO": 5, "SV": 0.25, "SA": 0, "GA": -0.8,
     "SV%": 0, "GAA": 0,
-    "DPT": 0
+    "DPT": 0,
+    "GS": 0
   },
 
   "source_weights": { "AGN": 1, "AGB": 1, "DtZ": 1, "DFO": 1 },
