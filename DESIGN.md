@@ -582,6 +582,44 @@ Zack Bolduc          MTL  LW,RW  ~  Zachary Bolduc       MTL  LW,RW   <- same pl
 James van Riemsdyk   DET  LW     ~  Trevor van Riemsdyk  PIT  D       <- brothers
 ```
 
+### The same check inside the import dialog
+
+`out/unmatched.csv` only covers sources the **build** reads. A file imported
+through the UI got no such triage: a name the source spelled differently just
+became a second row for a player already on the board. That is the worst shape
+a failure can take here — the import reports success, the duplicate carries
+half the projections, and nothing points at it until mid-draft.
+
+So the dialog runs the same suggester before you commit. Near-misses are listed
+with the board player each resembles, and merge on a click; `Merge all` takes
+the lot. Nothing merges on its own, because the rule that a suggestion is a
+candidate and not a confirmation does not relax just because the UI is faster
+than a CSV.
+
+`board/importer.js` reimplements `difflib.SequenceMatcher`'s matching-block
+total rather than approximating it, so the browser cannot propose a merge the
+build would not. A test drives both over 3,000+ pairs and asserts the ratios
+agree exactly. The junk and autojunk heuristics are deliberately omitted:
+autojunk only engages at 200+ characters and Python passes no `isjunk`, so for
+player names both are no-ops.
+
+**LineupExperts** was the source that prompted this. Five of its 300 names were
+given-name variants the board spells differently, and the suggester found all
+five and nothing else:
+
+```
+Matthew Boldy        -> Matt Boldy
+Matthew Beniers      -> Matty Beniers
+Zachary Benson       -> Zach Benson
+John-Jason Peterka   -> JJ Peterka
+Matthew Samoskevich  -> Mackie Samoskevich
+```
+
+`Mackie` is the case that rules out a simpler fix: it shares no prefix with
+`Matthew`, so nickname expansion or prefix matching would miss it where the
+surname-plus-score rule does not. All five are now in `config/aliases.csv`,
+which ships to the browser, so the file joins cleanly without any merging.
+
 ---
 
 ---
@@ -677,7 +715,7 @@ python run_tests.py
   same-name trap, the surname-based suggester, source parsing against known spot
   values from every workbook, the HTML reader (encoding, `2TM` deduping, derived
   stats, summary-row exclusion), the merge, and the history join.
-- **25 importer tests** — run against the real files in `sources/`, not
+- **28 importer tests** — run against the real files in `sources/`, not
   fixtures: CSV quirks, delimiter sniffing, xlsx zip and shared strings, sheet
   order, header detection, the synonym table, the two-columns-one-stat rule, the
   `PTS` arithmetic check, and normalizer equivalence with the shipped keys.
@@ -688,7 +726,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **253 UI checks** — the built page loaded in a headless DOM and driven through
+- **262 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

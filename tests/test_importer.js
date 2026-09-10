@@ -344,6 +344,52 @@ test("the JavaScript normalizer reproduces every key the build shipped", functio
   assert.ok(viaAlias.length > 0, "some names resolve only through the alias table");
 });
 
+/* The near-miss suggester. Reimplemented in JavaScript rather than approximated,
+ * because the browser must not propose a merge that build.py would not. */
+test("the JS ratio reproduces Python difflib exactly", function () {
+  // Values produced by difflib.SequenceMatcher(None, a, b).ratio() in Python.
+  var cases = [
+    ["matthew boldy", "matt boldy", 0.8695652173913043],
+    ["matthew samoskevich", "mackie samoskevich", 0.8108108108108109],
+    ["john jason peterka", "jj peterka", 0.7142857142857143],
+    ["zachary benson", "zach benson", 0.88],
+    ["matthew beniers", "matty beniers", 0.8571428571428571],
+    ["alexandre carrier", "william carrier", 0.5625],
+    ["", ""], 
+  ];
+  cases.forEach(function (c) {
+    if (c.length < 3) return;
+    assert.ok(Math.abs(I._ratio(c[0], c[1]) - c[2]) < 1e-12,
+              c[0] + " vs " + c[1] + ": " + I._ratio(c[0], c[1]) + " != " + c[2]);
+  });
+  assert.strictEqual(I._ratio("", ""), 1);
+});
+
+test("suggestKey finds given-name variants and rejects lookalikes", function () {
+  var keys = ["matt boldy", "matty beniers", "zach benson", "jj peterka",
+              "mackie samoskevich", "patrick kane", "ryan graves",
+              "william carrier", "alex carrier", "daniil tarasov (g)"];
+  assert.strictEqual(I.suggestKey("matthew boldy", keys), "matt boldy");
+  assert.strictEqual(I.suggestKey("matthew beniers", keys), "matty beniers");
+  assert.strictEqual(I.suggestKey("zachary benson", keys), "zach benson");
+  assert.strictEqual(I.suggestKey("john jason peterka", keys), "jj peterka");
+  assert.strictEqual(I.suggestKey("matthew samoskevich", keys),
+                     "mackie samoskevich");
+  // A position suffix is not part of the surname.
+  assert.strictEqual(I.suggestKey("daniil tarasov", keys), "daniil tarasov (g)");
+  // Different surnames that merely look alike -- both are real players.
+  assert.strictEqual(I.suggestKey("patrik laine", keys), "");
+  assert.strictEqual(I.suggestKey("ryan reaves", keys), "");
+  // Same surname, genuinely different person: the score has to reject it.
+  assert.notStrictEqual(I.suggestKey("alexandre carrier", keys), "william carrier");
+  assert.strictEqual(I.suggestKey("", keys), "");
+});
+
+test("surnameOf ignores a position suffix", function () {
+  assert.strictEqual(I._surnameOf("daniil tarasov (g)"), "tarasov");
+  assert.strictEqual(I._surnameOf("nathan mackinnon"), "mackinnon");
+  assert.strictEqual(I._surnameOf(""), "");
+});
 test("normalizeName handles the cases Python documents", function () {
   assert.strictEqual(I.normalizeName("Anže Kopitar"), "anze kopitar");
   assert.strictEqual(I.normalizeName("Alexis Lafrenière"), "alexis lafreniere");

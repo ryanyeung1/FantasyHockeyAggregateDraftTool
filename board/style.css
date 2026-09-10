@@ -768,3 +768,43 @@ aside h3 .hint { text-transform: none; letter-spacing: 0; color: var(--dim); fon
   opacity: 0.75;
 }
 .srcw.off .cov { padding: 2px 0; }
+
+/* Near-miss names in the import dialog. Deliberately loud: an unmerged
+   duplicate is silent damage, so the panel has to be noticed. */
+#import-unmatched {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--warn-border, #c58a2e);
+  border-radius: 6px;
+  background: var(--warn-bg, rgba(197, 138, 46, 0.09));
+  font-size: 12px;
+}
+.unmatched-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  line-height: 1.45;
+}
+.unmatched-head #merge-all { margin-left: auto; }
+.unmatched-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(128, 128, 128, 0.22);
+}
+.unmatched-row .arrow {
+  color: var(--muted, #888);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.unmatched-row button { margin-left: auto; }
+.unmatched-row.merged { opacity: 0.62; }
+.btn.small {
+  padding: 2px 9px;
+  font-size: 11px;
+  line-height: 1.7;
+}

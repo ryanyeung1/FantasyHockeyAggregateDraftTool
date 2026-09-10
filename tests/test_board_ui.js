@@ -1143,7 +1143,79 @@ setTimeout(() => {
             victimName);
       click($('#clear-draft'));
 
-      removalTests();
+      nearMissTests();
+      }
+
+      /* A name the source spells differently must not quietly become a second
+       * row for a player already on the board. That failure is silent -- the
+       * import reports success and the duplicate only surfaces later, halfway
+       * through a draft -- so the dialog has to raise it before the commit. */
+      function nearMissTests() {
+      console.log('\n--- near-miss names in the import dialog ---');
+      const beforeNear = rowCount();
+      pickFile('nearmiss.csv',
+               'Player,Team,Pos,GP,G,A\nMitchell Marner,VGK,RW,82,40,40\n',
+               'text/csv');
+      setTimeout(function () {
+        /* The direction-marker collision cost two wrong diagnoses: a bare
+         * `.flag { width: 9px }` silently matched the import dialog too. These
+         * panel classes are generic enough to invite the same, so keep them
+         * scoped rather than global. */
+        check('the panel classes are scoped, not global',
+              !/^\.arrow\s*\{/m.test(pageCss) && !/^\.merged\s*\{/m.test(pageCss) &&
+              /\.unmatched-row \.arrow\s*\{/.test(pageCss));
+        check('a near-miss name is surfaced before the commit',
+              !$('#import-unmatched').hidden);
+        check('named against the board player it resembles',
+              /Mitchell Marner/.test($('#import-unmatched').textContent) &&
+              /Mitch Marner/.test($('#import-unmatched').textContent),
+              $('#import-unmatched').textContent.trim().slice(0, 90));
+        // Nothing merges on its own -- the panel proposes, the user decides.
+        check('and it still counts as new until merged',
+              /1 players . 0 matched to the board . 1 new/
+                .test($('#import-summary').textContent),
+              $('#import-summary').textContent);
+
+        click($('#import-unmatched [data-merge]'));
+        check('merging folds it onto the existing player',
+              /1 players . 1 matched to the board . 0 new/
+                .test($('#import-summary').textContent),
+              $('#import-summary').textContent);
+        check('and the row shows as merged, with an undo',
+              !!$('#import-unmatched .unmatched-row.merged') &&
+              /Undo/.test($('#import-unmatched [data-merge]').textContent));
+
+        click($('#import-unmatched [data-merge]'));
+        check('undo puts it back',
+              /1 players . 0 matched to the board . 1 new/
+                .test($('#import-summary').textContent),
+              $('#import-summary').textContent);
+
+        click($('#merge-all'));
+        check('merge all does the same in one click',
+              /1 players . 1 matched to the board . 0 new/
+                .test($('#import-summary').textContent),
+              $('#import-summary').textContent);
+
+        click($('#import-confirm'));
+        check('so committing adds no duplicate row', rowCount() === beforeNear,
+              beforeNear + ' -> ' + rowCount());
+        check('and the merged row keeps the board spelling', (function () {
+          $('#search').value = 'Marner';
+          fire($('#search'), 'input');
+          const names = $$('#rows tr[data-id] .pname').map(e => e.textContent);
+          $('#search').value = '';
+          fire($('#search'), 'input');
+          return names.length === 1 && names[0] === 'Mitch Marner';
+        })());
+
+        window.confirm = function () { return true; };
+        let guard = 0;
+        while ($('#weights [data-remove-source^=\"IMP\"]') && guard++ < 10) {
+          click($('#weights [data-remove-source^=\"IMP\"]'));
+        }
+        removalTests();
+      }, 400);
       }
     }, 300);
   }, 400);

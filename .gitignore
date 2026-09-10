@@ -11,6 +11,9 @@ __pycache__/
 sources/*Fantasy-Projections-Yahoo*
 sources/*Fantasy-Projections-Fantrax*
 
+# LineupExperts -- likewise not built into the board, kept local for UI import.
+sources/LineupExperts*
+
 # The free factual columns extracted from those workbooks -- positions and ages,
 # which are Yahoo's and Fantrax's own rulings rather than projection work -- ARE
 # tracked on purpose: the board needs them and the build works without the

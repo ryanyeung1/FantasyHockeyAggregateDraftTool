@@ -38,6 +38,99 @@
     return text.replace(/\s+/g, " ").trim();
   }
 
+  /* --------------------------------------------------------- near-miss names */
+
+  /* Port of difflib.SequenceMatcher's matching-block total.
+   *
+   * Reimplemented rather than approximated because the Python build already
+   * uses difflib to suggest aliases, and a browser suggestion that disagreed
+   * with the one build.py prints would be worse than no suggestion at all. A
+   * test drives both over the same pairs and asserts the ratios are identical.
+   *
+   * The junk and autojunk heuristics are deliberately omitted: autojunk only
+   * engages at 200+ characters and no isjunk is passed on the Python side, so
+   * for player names both are no-ops.
+   */
+  function matchingSize(a, b) {
+    var b2j = {};
+    for (var i = 0; i < b.length; i++) {
+      var ch = b.charAt(i);
+      if (!b2j[ch]) b2j[ch] = [];
+      b2j[ch].push(i);
+    }
+    var total = 0;
+    var queue = [[0, a.length, 0, b.length]];
+    while (queue.length) {
+      var range = queue.pop();
+      var alo = range[0], ahi = range[1], blo = range[2], bhi = range[3];
+      var besti = alo, bestj = blo, bestsize = 0;
+      var j2len = {};
+      for (var ai = alo; ai < ahi; ai++) {
+        var next = {};
+        var idxs = b2j[a.charAt(ai)] || [];
+        for (var x = 0; x < idxs.length; x++) {
+          var j = idxs[x];
+          if (j < blo) continue;
+          if (j >= bhi) break;
+          var k = (j2len[j - 1] || 0) + 1;
+          next[j] = k;
+          if (k > bestsize) {
+            besti = ai - k + 1;
+            bestj = j - k + 1;
+            bestsize = k;
+          }
+        }
+        j2len = next;
+      }
+      if (!bestsize) continue;
+      total += bestsize;
+      if (alo < besti && blo < bestj) queue.push([alo, besti, blo, bestj]);
+      if (besti + bestsize < ahi && bestj + bestsize < bhi) {
+        queue.push([besti + bestsize, ahi, bestj + bestsize, bhi]);
+      }
+    }
+    return total;
+  }
+
+  function ratio(a, b) {
+    var length = a.length + b.length;
+    return length ? (2 * matchingSize(a, b)) / length : 1;
+  }
+
+  /* Last name from an already-normalized key, ignoring a "(g)"-style suffix. */
+  function surnameOf(key) {
+    var tokens = String(key || "").split(" ");
+    while (tokens.length && tokens[tokens.length - 1].charAt(0) === "(") {
+      tokens.pop();
+    }
+    return tokens.length ? tokens[tokens.length - 1] : "";
+  }
+
+  /* Port of drafttool/names.py::suggest, returning the matched key.
+   *
+   * Requires an exact surname match, then scores the whole name. See the Python
+   * docstring for why overall similarity alone cannot do this: measured on the
+   * aliases this project actually needs, true and false matches occupy the same
+   * score range, and only the surname rule separates them.
+   */
+  function suggestKey(unknownKey, candidateKeys, cutoff) {
+    if (cutoff === undefined) cutoff = 0.70;
+    var target = surnameOf(unknownKey);
+    if (!target) return "";
+    var best = "";
+    var bestScore = cutoff;
+    for (var i = 0; i < candidateKeys.length; i++) {
+      var key = candidateKeys[i];
+      if (surnameOf(key) !== target) continue;
+      var score = ratio(unknownKey, key);
+      if (score >= bestScore) {
+        bestScore = score;
+        best = key;
+      }
+    }
+    return best;
+  }
+
   /* ------------------------------------------------------------------ values */
 
   // Sites write "no value" in a dozen ways; an em dash is the one this project
@@ -726,6 +819,9 @@
 
   return {
     normalizeName: normalizeName,
+    suggestKey: suggestKey,
+    _ratio: ratio,
+    _surnameOf: surnameOf,
     normalizeHeader: normalizeHeader,
     toNumber: toNumber,
     isBlank: isBlank,

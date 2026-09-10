@@ -393,7 +393,61 @@
     }).join("");
 
     document.getElementById("import-columns").innerHTML = html;
+    if (!pending.merges) pending.merges = {};
     updateImportSummary();
+  }
+
+  /* Near-misses the source spells differently, e.g. "Matthew Boldy" for the
+   * board's "Matt Boldy". Left alone these do not error -- they quietly become
+   * a second, half-empty row for a player who is already on the board, which is
+   * worse than a failure because nothing points at it. So they are listed with
+   * a suggestion and merged on request.
+   *
+   * Only ever a suggestion: config/aliases.csv carries "Patrik Laine" and
+   * "Ryan Reaves" as standing reminders that a confident-looking near-miss can
+   * be a different, real player. Nothing merges without a click. */
+  function renderUnmatched(built, onBoard) {
+    var box = document.getElementById("import-unmatched");
+    var boardKeys = Object.keys(onBoard);
+    var displayByKey = {};
+    BOARD.players.forEach(function (p) { displayByKey[p.k] = p.n; });
+
+    var misses = built.filter(function (p) { return !onBoard[p.srcKey]; });
+    var rows = misses.map(function (p) {
+      return { key: p.srcKey, name: p.name,
+               suggestion: I.suggestKey(p.srcKey, boardKeys) };
+    }).filter(function (r) { return r.suggestion; });
+
+    if (!rows.length) {
+      box.innerHTML = "";
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+
+    var anyOpen = rows.some(function (r) { return !pending.merges[r.key]; });
+    box.innerHTML =
+      '<div class="unmatched-head">' +
+        "<b>" + (rows.length === 1
+          ? "1 name looks like a player already on the board."
+          : rows.length + " names look like players already on the board.") +
+        "</b> " +
+        'Merging keeps one row instead of creating a duplicate. ' +
+        'Check each one — a close spelling can still be a different player.' +
+        '<button class="btn small" id="merge-all">' +
+        (anyOpen ? "Merge all" : "Undo all") + "</button>" +
+      "</div>" +
+      rows.map(function (r) {
+        var merged = pending.merges[r.key] === r.suggestion;
+        return '<div class="unmatched-row' + (merged ? " merged" : "") + '">' +
+          "<span>" + esc(r.name) + "</span>" +
+          '<span class="arrow">' + (merged ? "merged into" : "looks like") +
+          "</span>" +
+          "<span>" + esc(displayByKey[r.suggestion] || r.suggestion) + "</span>" +
+          '<button class="btn small" data-merge="' + esc(r.key) +
+          '" data-target="' + esc(r.suggestion) + '">' +
+          (merged ? "Undo" : "Merge") + "</button></div>";
+      }).join("");
   }
 
   /* Tell the user how many rows will actually land before they commit. */
@@ -408,10 +462,25 @@
     } catch (err) {
       box.textContent = err.message;
       pending.built = null;
+      document.getElementById("import-unmatched").hidden = true;
       return;
     }
     var onBoard = {};
     BOARD.players.forEach(function (p) { onBoard[p.k] = 1; });
+
+    // Keep the source's own key so a merged row can still be listed, and undone.
+    var displayByKey = {};
+    BOARD.players.forEach(function (p) { displayByKey[p.k] = p.n; });
+    built.forEach(function (p) {
+      p.srcKey = p.key;
+      var target = pending.merges[p.key];
+      if (target) {
+        p.key = target;
+        p.name = displayByKey[target] || p.name;
+      }
+    });
+    renderUnmatched(built, onBoard);
+
     var matched = built.filter(function (p) { return onBoard[p.key]; }).length;
     var stats = {};
     pending.columns.forEach(function (c) {
@@ -430,6 +499,8 @@
     document.getElementById("import-modal").hidden = true;
     document.getElementById("import-name").value = "";
     document.getElementById("import-columns").innerHTML = "";
+    document.getElementById("import-unmatched").innerHTML = "";
+    document.getElementById("import-unmatched").hidden = true;
     pending = null;
   }
 
@@ -2082,6 +2153,36 @@
       if (e.target.id === "import-per-game") {
         pending.perGame = e.target.checked;
         pending.perGameTouched = true;
+        updateImportSummary();
+      }
+    });
+
+    importModal.addEventListener("click", function (e) {
+      if (!pending) return;
+      var btn = e.target.closest("[data-merge]");
+      if (btn) {
+        var key = btn.getAttribute("data-merge");
+        var target = btn.getAttribute("data-target");
+        if (pending.merges[key]) delete pending.merges[key];
+        else pending.merges[key] = target;
+        updateImportSummary();
+        return;
+      }
+      if (e.target.id === "merge-all") {
+        var boardKeys = BOARD.players.map(function (p) { return p.k; });
+        var onBoard = {};
+        boardKeys.forEach(function (k) { onBoard[k] = 1; });
+        var open = [];
+        (pending.built || []).forEach(function (p) {
+          if (onBoard[p.srcKey]) return;
+          var s = I.suggestKey(p.srcKey, boardKeys);
+          if (s) open.push([p.srcKey, s]);
+        });
+        var anyOpen = open.some(function (o) { return !pending.merges[o[0]]; });
+        open.forEach(function (o) {
+          if (anyOpen) pending.merges[o[0]] = o[1];
+          else delete pending.merges[o[0]];
+        });
         updateImportSummary();
       }
     });

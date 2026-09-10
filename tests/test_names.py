@@ -70,7 +70,7 @@ class TestShippedAliases(unittest.TestCase):
         self.table = load_aliases(CONFIG)
 
     def test_file_loads(self):
-        self.assertEqual(len(self.table), 29)
+        self.assertEqual(len(self.table), 34)
 
     def test_each_pair_resolves(self):
         pairs = [
@@ -93,6 +93,14 @@ class TestShippedAliases(unittest.TestCase):
             ("Jake Middleton", "Jacob Middleton"),
             ("Will Borgen", "William Borgen"),
             ("Daniil Tarasov", "Daniil Tarasov (G)"),
+            # Added when LineupExperts was checked against the board: all five
+            # are given-name variants the suggester proposed, each verified by
+            # hand against team and position before being trusted.
+            ("Matthew Boldy", "Matt Boldy"),
+            ("Matthew Beniers", "Matty Beniers"),
+            ("Zachary Benson", "Zach Benson"),
+            ("John-Jason Peterka", "JJ Peterka"),
+            ("Matthew Samoskevich", "Mackie Samoskevich"),
             ("Zack Bolduc", "Zachary Bolduc"),
             ("Emil Lilleberg", "Emil Martinsen Lilleberg"),
             # Added when last season's actuals were brought in.
@@ -158,6 +166,8 @@ class TestSuggest(unittest.TestCase):
         "Zachary Bolduc", "Emil Martinsen Lilleberg", "Daniil Tarasov (G)",
         "Patrick Kane", "Ryan Graves", "Jake Evans", "Adam Edstrom",
         "William Carrier", "Alex Carrier", "Nathan MacKinnon",
+        "Matt Boldy", "Matty Beniers", "Zach Benson", "JJ Peterka",
+        "Mackie Samoskevich",
     ]
 
     def setUp(self):
@@ -176,6 +186,13 @@ class TestSuggest(unittest.TestCase):
             ("Zack Bolduc", "Zachary Bolduc"),
             ("Emil Lilleberg", "Emil Martinsen Lilleberg"),
             ("Daniil Tarasov", "Daniil Tarasov (G)"),
+            # The LineupExperts spellings. "Mackie" is the reason a nickname
+            # table alone would not do: it shares no prefix with "Matthew".
+            ("Matthew Boldy", "Matt Boldy"),
+            ("Matthew Beniers", "Matty Beniers"),
+            ("Zachary Benson", "Zach Benson"),
+            ("John-Jason Peterka", "JJ Peterka"),
+            ("Matthew Samoskevich", "Mackie Samoskevich"),
         ]:
             self.assertEqual(self._suggest(source_name), expected,
                              "%s should suggest %s" % (source_name, expected))
