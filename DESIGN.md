@@ -281,6 +281,57 @@ two veterans in the breakout band.
 
 ## Draft-time behaviour
 
+### What the `#` column ranks by
+
+The leftmost column had exactly one definition — VORP — and it is still the
+default. But "who is best" is not the only question asked in prep. "Who scores
+the most", "who blocks the most", "who is youngest" are all live, and answering
+any of them used to mean sorting by a column that in most cases is not on the
+board at all.
+
+The picker in the `#` header changes what the column ranks by. Choosing a
+metric **reorders the board** — rank 1 is that metric's leader — and when the
+metric has no column of its own the cell carries the value too, so the number
+you are ranking on is never invisible:
+
+```
+#        ADP    Player            Pos
+1 · 46   3.1    Nathan MacKinnon  C
+2 · 45   9.4    Kirill Kaprizov   LW
+...
+806 · —  —      Calvin Pickard    G
+```
+
+**`row.rank` does not move.** The `#` column and `row.rank` came apart on
+purpose. `adpCell` and `lastRankCell` both diff against `row.rank` to decide
+their arrows, and those arrows mean *"against where VORP has him"* — a steal is
+a player going later than his value warrants. Re-stamping rank by goals would
+silently redefine a steal as "goes later than his goal-scoring alone suggests",
+a different and much narrower question. So the metric is a presentation layer
+built from the computed rows; replacement level, VORP, tiers, `Next` and Best
+Available are untouched by it.
+
+Players with no value for the metric — goalies under Goals — keep the board's
+VORP order among themselves and take the numbers left over, so they sit at the
+bottom with an em dash rather than disappearing. They are still draftable, and
+`metricRank` is never null, which is why the generic sorter needs no special
+case for it.
+
+**Not offered, and why.** Rate stats (`ATOI`, `SV%`, `GAA`) are excluded because
+ranking a blended rate mixes populations — a goalie with 12 projected starts
+lands beside one with 60. Five counting stats are excluded for a different
+reason: `L`, `OTL`, `GA`, `SA` and `FOL` are ones where "rank 1" is genuinely
+ambiguous — fewest losses, or most? Offering them invites a board quietly
+headed by the worst goalies, so they are left out rather than guessed at.
+
+The choice is saved, and the board **opens sorted by the `#` column** rather
+than by VORP. Those two have to move together: restoring the metric while the
+board reopened in VORP order left the ranks running out of sequence down the
+page — 1, 7, 3, 12 — which reads as a bug whichever way you look at it.
+
+Age is the one metric whose direction is a matter of taste. It ranks youngest
+first; clicking the header flips the view either way.
+
 ### Live scarcity, and the `Next` column
 
 With **Live scarcity** on, players are priced against the pool still on the
@@ -726,7 +777,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **262 UI checks** — the built page loaded in a headless DOM and driven through
+- **280 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

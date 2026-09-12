@@ -31,6 +31,7 @@ then open **`out/draft_board.html`**.
 | See a player's per-source projections | click their **name** (a chevron appears on hover) |
 | Jump to the search box | press `/` |
 | Sort | click any column header |
+| Rank by a different metric | the dropdown in the **#** header |
 
 Filter chips narrow the table by position, plus **Mine**, **Adj**, **Drafted**,
 **★ Watch** and **⊘ Avoid**. The right rail shows the best available at each
@@ -86,6 +87,6 @@ and can export its own CSV from the browser.
 ```
 python build.py          # build the board
 python build.py --verify # and cross-check against a reference sheet
-python run_tests.py      # 158 Python, 63 JS, 28 importer, 262 UI checks
+python run_tests.py      # 158 Python, 63 JS, 28 importer, 280 UI checks
 python make_reference.py # regenerate eligibility and age lists
 ```

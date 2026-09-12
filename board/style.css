@@ -808,3 +808,37 @@ aside h3 .hint { text-transform: none; letter-spacing: 0; color: var(--dim); fon
   font-size: 11px;
   line-height: 1.7;
 }
+
+/* The ranking-metric picker, in the `#` header.
+
+   Scoped names on purpose: a bare ".rank" or ".picker" is exactly the mistake
+   the td .flag comment above records. */
+
+/* Form controls are styled only under .field / .drawer, so a select dropped in
+   thead inherits none of it and renders with the browser's white default
+   behind the theme's light text -- the same way the import dialog's name field
+   once read as blank. It also has to escape the uppercase and 11px the header
+   imposes, or the options render tiny and shouted. */
+thead th .rankpick {
+  margin-left: 4px;
+  padding: 1px 2px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+thead th .rankpick:hover { border-color: var(--accent); }
+
+/* The metric's own value, when it has no column of its own to live in. Muted
+   so the rank stays the number the eye lands on. */
+.rankcell .rankval {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}

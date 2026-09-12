@@ -802,6 +802,7 @@
     adjustmentPct: adjustmentPct,
     applyAdjustment: applyAdjustment,
     fantasyPoints: fantasyPoints,
+    statValue: statValue,
     positionalSlots: positionalSlots,
     replacementByPosition: replacementByPosition,
     replacementByDraft: replacementByDraft,

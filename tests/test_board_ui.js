@@ -63,11 +63,23 @@ setTimeout(() => {
   check('no script errors', errors.length === 0, errors.join(' | '));
   const rows = $$('#rows tr[data-id]');
   check('board rendered rows', rows.length > 800, rows.length + ' rows');
+  // Not VORP: rankMetric is saved, so the row order on boot has to follow
+  // whatever `#` is counting or the ranks run out of sequence down the page.
+  check('the board opens sorted by the rank column',
+        $('#head th.sorted').getAttribute('data-key') === 'metricRank',
+        $('#head th.sorted').getAttribute('data-key'));
   // Column positions by header text. Adding a column used to shift every
   // hardcoded index and quietly move assertions onto the wrong cell.
+  //
+  // Also keyed on data-key: the `#` header now carries the rank-metric
+  // <select>, so every one of its option labels lands in that header's
+  // textContent. data-key is the stable handle.
   const COL = (() => {
     const map = {};
-    $$('#head th').forEach((th, i) => { map[th.textContent.replace(/[▲▼]/g, '').trim()] = i; });
+    $$('#head th').forEach((th, i) => {
+      map[th.getAttribute('data-key')] = i;
+      map[th.textContent.replace(/[▲▼]/g, '').trim()] = i;
+    });
     return map;
   })();
   const cellOf = (row, header) => row.children[COL[header]];
@@ -981,6 +993,100 @@ setTimeout(() => {
   check('sorting by ADP works', parseFloat(firstAdp) < 3, 'top ADP ' + firstAdp);
   click($$('#head th').find(t => t.getAttribute('data-key') === 'vorp'));
 
+  console.log('\n--- ranking metric ---');
+  /* The `#` column had exactly one definition, VORP, and answering any other
+   * question meant sorting by a column that usually does not exist on the
+   * board. The picker changes what `#` ranks by and reorders the board with
+   * it; when the metric has no column of its own the cell shows its value. */
+  const picker = () => $('#rank-metric');
+  // renderHead() rebuilds the header, so the old node is detached every time.
+  const pickMetric = v => { const s = picker(); s.value = v; fire(s, 'change'); };
+  const rankText = r => cellOf(r, 'metricRank').textContent.trim();
+
+  check('the picker sits in the # header',
+        !!picker() && picker().closest('th').getAttribute('data-key') === 'metricRank');
+  check('and offers the computed metrics plus counting stats',
+        $$('#rank-metric option').length > 15,
+        $$('#rank-metric option').length + ' options');
+  check('rate stats and ambiguous counts are not offered', (() => {
+    const keys = $$('#rank-metric option').map(o => o.value);
+    return ['stat:ATOI', 'stat:SV%', 'stat:GAA', 'stat:L', 'stat:OTL',
+            'stat:GA', 'stat:SA', 'stat:FOL'].every(k => keys.indexOf(k) < 0);
+  })());
+  check('it defaults to VORP', picker().value === 'vorp');
+
+  const adpBefore = {};
+  $$('#rows tr[data-id]').forEach(r => {
+    adpBefore[cellOf(r, 'name').textContent] = cellOf(r, 'adp').innerHTML;
+  });
+
+  pickMetric('stat:G');
+  const byGoals = $$('#rows tr[data-id]');
+  const goalsOf = r => parseFloat(rankText(r).split('\u00b7')[1]);
+  check('picking a metric renumbers # from 1',
+        rankText(byGoals[0]).indexOf('1 ') === 0, rankText(byGoals[0]));
+  check('and reorders the board by it', (() => {
+    for (let n = 1; n < 40; n++) {
+      if (goalsOf(byGoals[n]) > goalsOf(byGoals[n - 1])) return false;
+    }
+    return true;
+  })(), 'top: ' + byGoals.slice(0, 3).map(rankText).join(' | '));
+  check('the value is shown for a metric with no column of its own',
+        !!cellOf(byGoals[0], 'metricRank').querySelector('.rankval'),
+        cellOf(byGoals[0], 'metricRank').innerHTML);
+
+  // Goalies have no goals. They must not vanish and must not sort first.
+  const tail = byGoals[byGoals.length - 1];
+  check('a player with no value for the metric sorts last',
+        cellOf(tail, 'posLabel').textContent.trim() === 'G',
+        cellOf(tail, 'posLabel').textContent.trim());
+  check('but still carries a rank rather than a blank',
+        parseInt(rankText(tail), 10) === byGoals.length,
+        rankText(tail));
+  check('with an em dash where the value would be',
+        rankText(tail).indexOf('\u2014') > 0, rankText(tail));
+
+  /* The whole reason row.rank was left alone. ADP's steal/reach arrows diff
+   * against VORP rank, and they must keep meaning that no matter what `#`
+   * is counting. */
+  check('the ADP arrows do not move when the metric changes', (() => {
+    const moved = $$('#rows tr[data-id]').filter(r => {
+      const name = cellOf(r, 'name').textContent;
+      return adpBefore[name] !== undefined &&
+             adpBefore[name] !== cellOf(r, 'adp').innerHTML;
+    });
+    return moved.length === 0;
+  })());
+
+  pickMetric('fp');
+  check('a metric that already has a column shows no repeated value',
+        !cellOf($$('#rows tr[data-id]')[0], 'metricRank').querySelector('.rankval'),
+        cellOf($$('#rows tr[data-id]')[0], 'metricRank').innerHTML);
+
+  pickMetric('age');
+  check('age ranks youngest first',
+        parseInt(cellOf($$('#rows tr[data-id]')[0], 'age').textContent, 10) <= 20,
+        cellOf($$('#rows tr[data-id]')[0], 'age').textContent.trim());
+
+  // The header owns the sort gesture; the picker sits inside it.
+  const sortedBefore = $('#head th.sorted').getAttribute('data-key');
+  const dirBefore = $('#head th.sorted .dir').textContent;
+  click(picker());
+  check('opening the picker does not re-sort the board',
+        $('#head th.sorted').getAttribute('data-key') === sortedBefore &&
+        $('#head th.sorted .dir').textContent === dirBefore,
+        sortedBefore + ' ' + dirBefore);
+
+  /* Generic class names in a shared stylesheet: the .flag collision cost two
+   * wrong diagnoses before anyone looked at the computed width. */
+  check('the picker classes are scoped, not global',
+        !/^\.rankpick\s*\{/m.test(pageCss) && !/^\.rankval\s*\{/m.test(pageCss) &&
+        /thead th \.rankpick\s*\{/.test(pageCss) &&
+        /\.rankcell \.rankval\s*\{/.test(pageCss));
+
+  pickMetric('vorp');
+  click($$('#head th').find(t => t.getAttribute('data-key') === 'vorp'));
+
   console.log('\n--- persistence ---');
   click($$('#rows tr[data-id]')[0].querySelector('.tm'));
   dblclick($$('#rows tr[data-id]')[1].querySelector('.tm'));
@@ -1524,7 +1630,8 @@ setTimeout(() => {
           countBench:         ['#repl-depth',           'value', 'starters'],
           tierK:              ['#tier-k',               'value', '2.5'],
           minGP:              ['#min-gp',               'value', '20'],
-          'adjust tier 1':    ['#adj-1',                'value', '0.11']
+          'adjust tier 1':    ['#adj-1',                'value', '0.11'],
+          rankMetric:         ['#rank-metric',          'value', 'stat:G']
         };
         bootWith({
           version: 2, drafted: {}, mine: {}, adjust: {}, marks: {},
@@ -1534,7 +1641,7 @@ setTimeout(() => {
             teams: 14, gpModel: 'totals', gpSource: 'DFO', adpSource: 'yahoo',
             eligibility: 'fantrax', playoffWindow: 'full',
             replacementMethod: 'position', countBench: false,
-            tierK: 2.5, minGP: 20, adjust: { tiers: [0.11, 0.12, 0.13] }
+            tierK: 2.5, minGP: 20, rankMetric: 'stat:G', adjust: { tiers: [0.11, 0.12, 0.13] }
           }
         }, (w8, d8) => {
           d8.getElementById('open-settings').dispatchEvent(
@@ -1546,6 +1653,19 @@ setTimeout(() => {
           check('every setting survives a reload', missed.length === 0,
                 missed.length ? 'dropped: ' + missed.join(', ') : 'all ' +
                   Object.keys(want).length + ' restored');
+          /* The control coming back is not enough: the saved metric also has
+           * to drive the row order. Restoring the value while the board
+           * reopened in VORP order was the bug this pins. */
+          const c8 = {};
+          Array.from(d8.querySelectorAll('#head th')).forEach((th, n) => {
+            c8[th.getAttribute('data-key')] = n;
+          });
+          const r8 = Array.from(d8.querySelectorAll('#rows tr[data-id]'));
+          const rank8 = r => r.children[c8.metricRank].textContent.trim();
+          const val8 = r => parseFloat(rank8(r).split('\u00b7')[1]);
+          check('and a saved ranking metric restores the board order too',
+                rank8(r8[0]).indexOf('1 ') === 0 && val8(r8[0]) >= val8(r8[1]),
+                rank8(r8[0]) + ' then ' + rank8(r8[1]));
           finish();
         });
       }

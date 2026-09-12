@@ -40,8 +40,12 @@
     removed: [],        // ids of built-in sources the user has taken off the board
     filter: "ALL",
     query: "",
-    sortKey: "vorp",
-    sortDir: -1,
+    // The rank column, not VORP: `rankMetric` is saved, so on reload the board
+    // has to come back ordered by whatever `#` is counting. Sorting by VORP
+    // here meant a board saved ranked by FanPts reopened in VORP order with
+    // the ranks running out of sequence down the page.
+    sortKey: "metricRank",
+    sortDir: 1,
     dynamic: true,
     hideDrafted: false,
     expanded: null,
@@ -64,6 +68,7 @@
       countBench: cfg.model.count_bench !== false,
       tierK: cfg.model.tier_k,
       minGP: cfg.model.min_gp || 0,
+      rankMetric: cfg.model.rank_metric || "vorp",
       adjust: {
         tiers: (cfg.adjust && cfg.adjust.tiers) || [0.05, 0.10, 0.20],
         skaterStats: (cfg.adjust && cfg.adjust.skater_stats) || [],
@@ -717,7 +722,7 @@
     // written into markup, but keep them to strings so nothing else can be
     // smuggled through as an object.
     ["gpModel", "gpSource", "adpSource", "eligibility", "playoffWindow",
-     "replacementMethod"].forEach(function (k) {
+     "replacementMethod", "rankMetric"].forEach(function (k) {
       if (saved[k] !== undefined) base[k] = String(saved[k]);
     });
     if (saved.countBench !== undefined) base.countBench = !!saved.countBench;
@@ -931,6 +936,9 @@
     settings.dynamic = state.dynamic;
     settings.adjustments = state.adjust;
     state.result = V.compute(model, settings);
+    // Above the history early-return below: a board with no history file still
+    // needs its ranks.
+    applyRankMetric();
 
     var history = historyFor(state.settings);
     if (!history) return;
@@ -995,10 +1003,131 @@
     return out;
   }
 
+  /* ----------------------------------------------------------- rank metric */
+
+  /* What the `#` column ranks by.
+   *
+   * VORP answers "who is best", which is the right default and the only
+   * question the board could ask until now. It is not the only one asked during
+   * prep -- "who scores most", "who blocks most", "who is youngest" are all
+   * live -- and answering those used to mean sorting by a column that in most
+   * cases does not exist on the board at all.
+   *
+   * `dir` is 1 when rank 1 is the SMALLEST value (ADP, age) and -1 when it is
+   * the largest. `places` feeds the shared fmt() so each metric prints the way
+   * its own column would.
+   *
+   * Deliberately NOT offered:
+   *   ATOI, SV%, GAA   rate stats -- ranking a blended rate mixes populations
+   *   L, OTL, GA, SA   counting stats where "rank 1" is genuinely ambiguous
+   *   FOL              (fewest losses, or most?). Offering them would quietly
+   *                    produce a board headed by the worst goalies.
+   */
+  var RANK_METRIC_EXCLUDE = { L: 1, OTL: 1, GA: 1, SA: 1, FOL: 1 };
+
+  var RANK_METRICS = (function () {
+    var list = [
+      { key: "vorp", label: "VORP", places: 1, dir: -1,
+        get: function (r) { return r.vorp; } },
+      { key: "fp", label: "FanPts", places: 1, dir: -1,
+        get: function (r) { return r.fp; } },
+      { key: "adp", label: "ADP", places: 1, dir: 1,
+        get: function (r) { return r.adp; } },
+      // Youngest first. The only metric whose direction is a matter of taste;
+      // clicking the header flips the view either way.
+      { key: "age", label: "Age", places: 0, dir: 1,
+        get: function (r) { return r.age; } }
+    ];
+    (DATA.counting_stats || []).forEach(function (stat) {
+      if (RANK_METRIC_EXCLUDE[stat]) return;
+      list.push({
+        key: "stat:" + stat, label: stat, places: 0, dir: -1,
+        get: function (r) { return V.statValue(r.line, model, stat); }
+      });
+    });
+    return list;
+  })();
+
+  var RANK_METRIC_BY_KEY = (function () {
+    var map = {};
+    RANK_METRICS.forEach(function (m) { map[m.key] = m; });
+    return map;
+  })();
+
+  function rankMetric() {
+    return RANK_METRIC_BY_KEY[state.settings && state.settings.rankMetric] ||
+           RANK_METRIC_BY_KEY.vorp;
+  }
+
+  /* Stamp every row with the chosen metric's value and its rank in it.
+   *
+   * Rows carrying a value rank first, in metric order; rows without one keep
+   * the board's VORP order and take the numbers left over. That is what puts
+   * goalies at the bottom under Goals while leaving them ranked and draftable,
+   * and it means `metricRank` is never null, so the generic sorter needs no
+   * special case for it.
+   *
+   * Note this reads `row.rank` not at all. The `#` column and `row.rank` have
+   * come apart on purpose: `adpCell` and `lastRankCell` diff against
+   * `row.rank`, and those arrows are tuned to mean "against where VORP has
+   * him". Re-stamping rank by goals would silently redefine a steal.
+   */
+  function applyRankMetric() {
+    if (!state.result) return;
+    var rows = state.result.rows;
+    var metric = rankMetric();
+    var withValue = [];
+    var without = [];
+    for (var i = 0; i < rows.length; i++) {
+      var value = metric.get(rows[i]);
+      if (value === null || value === undefined || isNaN(value)) value = null;
+      rows[i].metricValue = value;
+      (value === null ? without : withValue).push(rows[i]);
+    }
+    withValue.sort(function (a, b) {
+      return metric.dir * (a.metricValue - b.metricValue);
+    });
+    var n = 1;
+    for (var w = 0; w < withValue.length; w++) withValue[w].metricRank = n++;
+    for (var o = 0; o < without.length; o++) without[o].metricRank = n++;
+  }
+
+  /* The metric already has a column of its own, so the `#` cell need not
+     repeat its value. Read off the live COLUMNS list rather than a hardcoded
+     set so it stays right if a column moves or is omitted. */
+  function metricHasColumn(metric) {
+    for (var i = 0; i < COLUMNS.length; i++) {
+      if (COLUMNS[i].key === metric.key) return true;
+    }
+    return false;
+  }
+
+  function rankCell(row) {
+    var metric = rankMetric();
+    var rank = esc(String(row.metricRank));
+    if (metricHasColumn(metric)) return rank;
+    var value = row.metricValue === null ? "—"
+                                         : fmt(row.metricValue, metric.places);
+    return rank + '<span class="rankval"> · ' + esc(value) + "</span>";
+  }
+
+  /* The picker itself, rendered into the `#` header so the column states what
+     it is ranking by. `title` carries the long name because the header is
+     uppercased and narrow. */
+  function rankPicker() {
+    var current = rankMetric().key;
+    var options = RANK_METRICS.map(function (m) {
+      return '<option value="' + esc(m.key) + '"' +
+        (m.key === current ? " selected" : "") + ">" + esc(m.label) + "</option>";
+    }).join("");
+    return '<select class="rankpick" id="rank-metric" title="Rank the board by">' +
+      options + "</select>";
+  }
+
   /* ---------------------------------------------------------------- columns */
 
   var COLUMNS = [
-    { key: "rank", label: "#", cls: "num", get: function (r) { return r.rank; } },
+    { key: "metricRank", label: "#", cls: "num rankcell", render: rankCell },
     { key: "adp", flagged: true, label: "ADP", cls: "num adp", render: adpCell },
     { key: "name", label: "Player", cls: "left", render: nameCell },
     { key: "team", label: "Tm", cls: "left tm", render: teamCell,
@@ -1264,6 +1393,7 @@
         classes.join(" ") + '"' +
         (col.title ? ' title="' + esc(col.title) + '"' : "") + ">" +
         esc(col.label) +
+        (col.key === "metricRank" ? rankPicker() : "") +
         (sorted ? '<span class="dir">' + (state.sortDir < 0 ? "▼" : "▲") + "</span>" : "") +
         "</th>";
     }
@@ -1923,6 +2053,9 @@
     });
 
     thead.addEventListener("click", function (e) {
+      // The header owns the sort gesture, so opening the picker would re-sort
+      // the board underneath it -- the same trap Adj and Mark hit in tbody.
+      if (e.target.closest(".rankpick")) return;
       var th = e.target.closest("th");
       if (!th) return;
       var key = th.getAttribute("data-key");
@@ -1931,12 +2064,23 @@
       } else {
         state.sortKey = key;
         // Ranks and ADP read best ascending; every other column descending.
-        state.sortDir = (key === "rank" || key === "adp" || key === "prnk" ||
+        state.sortDir = (key === "rank" || key === "metricRank" ||
+                         key === "adp" || key === "prnk" ||
                          key === "lastRank" || key === "name" || key === "team" ||
                          key === "posLabel") ? 1 : -1;
       }
       renderHead();
       renderRows();
+    });
+
+    thead.addEventListener("change", function (e) {
+      if (e.target.id !== "rank-metric") return;
+      state.settings.rankMetric = String(e.target.value);
+      // Picking a metric IS the board order -- without this the ranks would
+      // renumber while the rows stayed put, and `#` would count out of order.
+      state.sortKey = "metricRank";
+      state.sortDir = 1;
+      refresh();
     });
 
     tbody.addEventListener("click", function (e) {
