@@ -953,6 +953,14 @@
     }
   }
 
+  /* Setting .value in code fires no input event, so state.query has to be kept
+     in step by hand or the board stays filtered against a box that looks empty. */
+  function clearSearch() {
+    document.getElementById("search").value = "";
+    state.query = "";
+    renderRows();
+  }
+
   function visibleRows() {
     var rows = state.result.rows;
     var query = state.query.trim().toLowerCase();
@@ -2371,8 +2379,20 @@
 
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
+        var search = document.getElementById("search");
+        // The focused control owns the key: if you are typing in the box,
+        // Escape wipes what you typed and leaves you there to type again.
+        // Checked before the overlays for that reason.
+        if (document.activeElement === search && search.value) {
+          clearSearch();
+          return;
+        }
         if (!document.getElementById("import-modal").hidden) { closeImport(); return; }
-        document.getElementById("drawer").hidden = true;
+        var drawer = document.getElementById("drawer");
+        if (!drawer.hidden) { drawer.hidden = true; return; }
+        // Nothing open, but a search is still narrowing the board. One key gets
+        // you back to the full list without having to click into the box first.
+        if (search.value) clearSearch();
         return;
       }
       // "/" jumps to search, the one shortcut worth muscle memory mid-draft.

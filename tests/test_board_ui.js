@@ -46,6 +46,8 @@ const $$ = s => Array.from(doc.querySelectorAll(s));
 const click = (el, opts) => el.dispatchEvent(new window.MouseEvent('click',
   Object.assign({ bubbles: true }, opts || {})));
 const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: true }));
+const press = (key) => doc.dispatchEvent(new window.KeyboardEvent('keydown',
+  { key, bubbles: true }));
 // A browser sends click(detail 1), click(detail 2), then dblclick. Replaying
 // that exact sequence is the only way to test the gesture honestly.
 // The board holds its rebuild back for the double-click window (see
@@ -133,8 +135,34 @@ setTimeout(() => {
   const found = $$('#rows tr[data-id]');
   check('search narrows the board', found.length === 1 && /Makar/.test(found[0].textContent),
         found.length + ' rows');
-  search.value = '';
+  /* Escape clears the box. It already had two other jobs -- closing the import
+   * dialog and the settings drawer -- so the precedence is what matters here,
+   * not just that the key does something. */
+  search.focus();
+  press('Escape');
+  check('escape clears the search box', search.value === '', search.value);
+  check('and the board goes back to every player',
+        $$('#rows tr[data-id]').length > 800,
+        $$('#rows tr[data-id]').length + ' rows');
+  check('and focus stays in the box so you can type again',
+        doc.activeElement === search, doc.activeElement.id);
+
+  // Precedence: an open drawer closes first, and the query survives to be
+  // cleared by the next press.
+  search.value = 'makar';
   fire(search, 'input');
+  search.blur();
+  click($('#open-settings'));
+  press('Escape');
+  check('escape closes the drawer before touching the search',
+        $('#drawer').hidden && search.value === 'makar', search.value);
+  press('Escape');
+  check('and the next press clears the search', search.value === '', search.value);
+  // Setting .value in code fires no input event, so a handler that forgot to
+  // reset state.query would leave the board filtered behind an empty box.
+  check('the filter really cleared, not just the text',
+        $$('#rows tr[data-id]').length > 800,
+        $$('#rows tr[data-id]').length + ' rows');
 
   // Count goalies on the unfiltered board first, so this does not need updating
   // every time a source is added.
