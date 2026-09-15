@@ -364,14 +364,24 @@ active mark clears it, and the row picks up a coloured left edge so a mark
 catches your eye while scanning rather than only in a far-right column. The
 **★ Watch** and **⊘ Avoid** filter chips narrow the board to each.
 
-**An avoided player drops out of Best Available, and out of nothing else.**
-That line matters. Best Available answers *"who should I take"*, so it has to
-respect your list — and it says how many names it is hiding, so a gap reads as
-your decision rather than a bug. Replacement level and the `Next` column
-answer a different question: what the **rest of the league** will do. Somebody
-else will happily draft the player you crossed off, so removing them there
-would quietly corrupt every VORP on the board. A test asserts an avoided
-player leaves Best Available while still appearing as somebody else's `Next`.
+**A mark changes nothing the board computes, and hides nobody.** It is a note
+to yourself, drawn beside the player wherever he appears — including in Best
+Available, where an avoided player still ranks in his proper place with a `⊘`
+against his name.
+
+Best Available did once drop avoided players, and the panel counted off how
+many it was hiding. That was wrong in use: a player you have crossed off is
+still the best name at his position, and seeing where he ranks is exactly how
+you judge what passing on him costs. Hiding him answered *"who will I take"*
+when the useful question is *"what am I giving up"*.
+
+Replacement level and the `Next` column never respected the mark and still do
+not — they answer what the **rest of the league** will do, and somebody else
+will happily draft the player you crossed off, so excluding him there would
+quietly corrupt every VORP on the board. With the panel no longer filtering
+either, the rule is now simply that marks are presentation and nothing else.
+Tests assert an avoided player keeps his slot in Best Available, carries the
+glyph, and still appears as somebody else's `Next`.
 
 Marks are prep, not draft state: **Clear draft** leaves them alone, they ride
 along in a snapshot, and **Clear marks** is the button that removes them.
@@ -777,7 +787,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **280 UI checks** — the built page loaded in a headless DOM and driven through
+- **282 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

@@ -1151,10 +1151,10 @@
              "against for goalies. Hits, blocks, PIM and faceoffs are left " +
              "alone, since a scoring opinion should not change a player's role." },
     { key: "mark", label: "Mark", cls: "markcell", render: markCell,
-      title: "Your own shortlist. ★ keeps an eye on a player, ⊘ takes them off " +
-             "your list entirely — an avoided player drops out of Best " +
-             "Available, but still counts everywhere the board models what the " +
-             "rest of the league will do, because someone else will draft them." },
+      title: "Your own shortlist. ★ keeps an eye on a player, ⊘ rules them out " +
+             "whatever the numbers say. Both are notes to yourself: a mark " +
+             "changes nothing the board computes and hides nobody, it just " +
+             "flags the player wherever he appears." },
     { key: "vorp", label: "VORP", cls: "vorp", render: vorpCell },
     { key: "dropoff", label: "Next", cls: "num drop", render: dropCell },
     { key: "fp", label: "FanPts", cls: "num", get: function (r) { return fmt(r.fp); } },
@@ -1488,14 +1488,16 @@
   function renderBestAvailable() {
     var groups = { C: [], LW: [], RW: [], D: [], G: [] };
     var rows = state.result.rows;
-    var avoided = 0;
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
       if (state.drafted[row.id]) continue;
-      // "Who should I take" has to respect your own list. Replacement level and
-      // the Next column deliberately do NOT -- they model what the whole league
-      // does, and someone else will still draft this player.
-      if (state.marks[row.id] === "avoid") { avoided++; continue; }
+      // A do-not-draft mark does NOT remove a player from here, and does not
+      // touch replacement level or the Next column either -- it changes nothing
+      // the board computes. It is a note to yourself, drawn beside the name.
+      //
+      // The panel used to hide avoided players. It stopped doing so because a
+      // player you have crossed off is still the best name at his position, and
+      // seeing where he ranks is how you judge what passing on him costs.
       for (var p = 0; p < POS.length; p++) {
         if (row.posSet[POS[p]] && groups[POS[p]].length < 3) groups[POS[p]].push(row);
       }
@@ -1513,14 +1515,13 @@
       for (var j = 0; j < list.length; j++) {
         html += '<div class="bp-row" data-id="' + list[j].id + '">' +
           '<span class="bp-pos">' + (j === 0 ? pos : "") + "</span>" +
-          '<span class="bp-name">' + esc(list[j].name) + "</span>" +
+          '<span class="bp-name">' +
+          (state.marks[list[j].id] === "avoid"
+            ? '<span class="bp-avoid" title="You marked this player do not draft">⊘</span>'
+            : "") +
+          esc(list[j].name) + "</span>" +
           '<span class="bp-v">' + signed(list[j].vorp) + "</span></div>";
       }
-    }
-    if (avoided) {
-      // Say so, or a missing name reads as a bug rather than your own decision.
-      html += '<div class="bp-note">' + avoided + " player" +
-        (avoided === 1 ? "" : "s") + " hidden by your do-not-draft marks</div>";
     }
     document.getElementById("bestpos").innerHTML = html;
   }

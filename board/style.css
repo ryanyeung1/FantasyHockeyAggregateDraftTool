@@ -310,12 +310,6 @@ tr.avoid td:first-child { box-shadow: inset 2px 0 0 var(--reach); }
 tr.avoid .pname { color: var(--muted); }
 
 /* Why a name is missing from Best Available. */
-.bp-note {
-  color: var(--dim);
-  font-size: 10.5px;
-  padding: 4px 2px 0;
-}
-
 .adjval {
   display: inline-block;
   min-width: 26px;
@@ -548,6 +542,16 @@ aside h3 .hint { text-transform: none; letter-spacing: 0; color: var(--dim); fon
 .bp-row .bp-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bp-row .bp-v { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
 .bp-row.empty { color: var(--dim); cursor: default; }
+
+/* The do-not-draft mark, beside the name in Best Available. Same --reach as
+   .markbtn.avoid.on and the tr.avoid row edge, so one mark reads the same in
+   all three places. The glyph carries the meaning and the colour reinforces
+   it -- colour is never the only signal on this board. */
+.bp-row .bp-avoid {
+  color: var(--reach);
+  margin-right: 4px;
+  font-size: 11px;
+}
 
 .slots { display: grid; gap: 3px; }
 

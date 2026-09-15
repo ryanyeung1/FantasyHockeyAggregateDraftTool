@@ -795,23 +795,44 @@ setTimeout(() => {
         !rowFor2(markName).classList.contains('watch'),
         rowFor2(markName).className);
 
-  // The rule that would be wrong if avoid leaked into the valuation: Best
-  // Available is your list, but replacement level and Next model the whole
-  // league, and somebody else will still draft an avoided player.
-  const bestListNames = () => $$('#bestpos .bp-name').map(n => n.textContent);
+  // A do-not-draft mark changes nothing the board computes and hides nobody.
+  // It used to pull the player out of Best Available; it no longer does, because
+  // a player you crossed off is still the best name at his position and seeing
+  // where he ranks is how you judge what passing on him costs.
+  // The glyph lives inside .bp-name, so strip it for identity comparisons.
+  // The raw textContent is asserted separately below.
+  const bestListNames = () => $$('#bestpos .bp-name')
+    .map(n => n.textContent.replace(/^⊘/, ''));
   const nextTipTitles = () => $$('#rows tr[data-id]').map(r => {
     const sp = r.querySelector('td.drop span');
     return sp ? (sp.getAttribute('title') || '') : '';
   });
-  const avoidName = (nextTipTitles().find(t => t.indexOf('available: ') !== -1) || '')
-    .split('available: ')[1];
-  check('a player is named as somebody else Next to begin with', !!avoidName, avoidName);
+  // Picked from Best Available itself, not from a Next tooltip: a player who was
+  // never in the panel would satisfy 'still in the panel' vacuously.
+  const bestBefore = bestListNames();
+  // Needs three things at once, or the assertions below go vacuous or collide:
+  // in the panel, somebody else's Next (the board's #1 is nobody's Next), and
+  // not the player the watch checks above are already using.
+  const avoidName = bestBefore.find(n => n !== markName &&
+    nextTipTitles().some(t => t.indexOf(n) >= 0));
+  const avoidSlot = bestBefore.indexOf(avoidName);
+  check('a player is in Best Available and is somebody else Next',
+        !!avoidName && avoidSlot >= 0, avoidName);
   const replBeforeAvoid = $('#repl').textContent.trim();
   click(markBtn(rowFor2(avoidName), 'avoid'));
-  check('an avoided player leaves Best Available',
-        bestListNames().indexOf(avoidName) < 0, avoidName);
-  check('the panel says why a name is missing',
-        /do-not-draft/.test($('#bestpos').textContent));
+  check('an avoided player stays in Best Available',
+        bestListNames().indexOf(avoidName) >= 0, avoidName);
+  // Not merely present: still in the same slot. Appending avoided players to
+  // the bottom of the panel would pass a bare presence check.
+  check('and keeps his place in the ranking',
+        bestListNames()[avoidSlot] === avoidName,
+        avoidName + ' -> ' + bestListNames()[avoidSlot]);
+  check('the panel flags him rather than hiding him',
+        !!$('#bestpos .bp-avoid') &&
+        $$('#bestpos .bp-name')[avoidSlot].textContent.indexOf('⊘') === 0,
+        $$('#bestpos .bp-name')[avoidSlot].textContent);
+  check('and nothing is reported as hidden',
+        !/hidden by your do-not-draft/.test($('#bestpos').textContent));
   check('but is still somebody else Next',
         nextTipTitles().some(t => t.indexOf(avoidName) >= 0), avoidName);
   check('and replacement level is untouched',
@@ -849,7 +870,8 @@ setTimeout(() => {
   check('Clear marks removes them',
         !rowFor2(markName).classList.contains('watch') &&
         !rowFor2(avoidName).classList.contains('avoid'));
-  check('and Best Available fills back up', !/do-not-draft/.test($('#bestpos').textContent));
+  check('and the Best Available flag goes with them',
+        !$('#bestpos .bp-avoid'));
 
   console.log('\n--- drafted filter ---');
   const chip = name => $$('.filters .chip').find(c => c.getAttribute('data-pos') === name);
