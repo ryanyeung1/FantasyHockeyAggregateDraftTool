@@ -90,6 +90,6 @@ and can export its own CSV from the browser.
 ```
 python build.py          # build the board
 python build.py --verify # and cross-check against a reference sheet
-python run_tests.py      # 158 Python, 63 JS, 28 importer, 313 UI checks
+python run_tests.py      # 158 Python, 63 JS, 28 importer, 318 UI checks
 python make_reference.py # regenerate eligibility and age lists
 ```

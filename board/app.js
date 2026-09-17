@@ -964,6 +964,10 @@
    * click-only. Seven is what fits comfortably on the home row of digits. */
   var FILTER_KEYS = ["ALL", "F", "C", "LW", "RW", "D", "G"];
 
+  /* Filters whose whole point is the players already taken. Hide Drafted must
+     not empty these. */
+  var SHOWS_DRAFTED = { DRAFTED: 1, MINE: 1 };
+
   /* The roster slot types, in the order a lineup is filled, and which positions
      each will accept. Shared by the roster panel and Best Available so the two
      can never disagree about what an "F" slot takes. */
@@ -1000,10 +1004,14 @@
     var out = [];
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
-      // Asking for the drafted players outranks a standing "hide them", which
-      // would otherwise leave the filter showing an empty table.
+      // A filter that is ABOUT drafted players outranks a standing "hide them",
+      // which would otherwise leave it showing an empty table.
+      //
+      // Your own picks are a subset of the drafted, so MINE needs this exactly
+      // as much as DRAFTED does. It was missed when the rule was written, and
+      // turning on Hide Drafted emptied your own roster view.
       if (state.hideDrafted && state.drafted[row.id] &&
-          filter !== "DRAFTED") continue;
+          !SHOWS_DRAFTED[filter]) continue;
       if (filter !== "ALL") {
         if (filter === "F") {
           if (!(row.posSet.C || row.posSet.LW || row.posSet.RW)) continue;

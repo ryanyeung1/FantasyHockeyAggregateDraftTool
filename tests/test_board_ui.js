@@ -1127,6 +1127,43 @@ setTimeout(() => {
   $('#hide-drafted').checked = false;
   fire($('#hide-drafted'), 'change');
 
+  /* The same rule as above, for the case it was written without: your own
+   * picks are a SUBSET of the drafted, so Hide drafted used to empty the Mine
+   * filter completely -- your roster vanished exactly when you turned on the
+   * setting that makes a live draft readable. Nothing covered the two together. */
+  const mineRow = $$('#rows tr[data-id]').find(
+    r => r.querySelector('.pname').textContent === takenNames[0]);
+  dblclick(mineRow.querySelector('.tm'));
+  click(chip('MINE'));
+  const mineVisible = $$('#rows tr[data-id]').length;
+  check('a player is on your roster for this check', mineVisible === 1, mineVisible + ' rows');
+  $('#hide-drafted').checked = true;
+  fire($('#hide-drafted'), 'change');
+  check('Mine survives Hide drafted', $$('#rows tr[data-id]').length === mineVisible,
+        $$('#rows tr[data-id]').length + ' rows');
+  check('and the row shown is still your pick',
+        $$('#rows tr[data-id]')[0].querySelector('.pname').textContent === takenNames[0],
+        takenNames[0]);
+  // The setting still has to do its job everywhere else.
+  click(chip('ALL'));
+  check('while All still hides the drafted with it on',
+        $$('#rows tr[data-id]').every(r => !r.classList.contains('drafted')),
+        $$('#rows tr[data-id]').length + ' rows');
+  $('#hide-drafted').checked = false;
+  fire($('#hide-drafted'), 'change');
+  /* Put the row back to "drafted, not mine" by reading its state rather than
+   * repeating the gesture: a double-click is click/click/dblclick, so undoing
+   * one is not simply doing it again, and the section's own cleanup below
+   * assumes each taken player is still drafted exactly once. */
+  const takenRow = () => $$('#rows tr[data-id]').find(
+    r => r.querySelector('.pname').textContent === takenNames[0]);
+  if (takenRow().classList.contains('mine')) dblclick(takenRow().querySelector('.tm'));
+  if (!takenRow().classList.contains('drafted')) click(takenRow().querySelector('.tm'));
+  check('the roster is handed back the way the section found it',
+        !takenRow().classList.contains('mine') &&
+        takenRow().classList.contains('drafted'),
+        takenRow().className);
+
   // Your own picks are drafted too, so Drafted is a superset of Mine.
   click(chip('MINE'));
   const mineCount = $$('#rows tr[data-id]').length;
