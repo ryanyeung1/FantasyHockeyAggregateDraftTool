@@ -46,8 +46,8 @@ const $$ = s => Array.from(doc.querySelectorAll(s));
 const click = (el, opts) => el.dispatchEvent(new window.MouseEvent('click',
   Object.assign({ bubbles: true }, opts || {})));
 const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: true }));
-const press = (key) => doc.dispatchEvent(new window.KeyboardEvent('keydown',
-  { key, bubbles: true }));
+const press = (key, opts) => doc.dispatchEvent(new window.KeyboardEvent('keydown',
+  Object.assign({ key, bubbles: true }, opts || {})));
 // A browser sends click(detail 1), click(detail 2), then dblclick. Replaying
 // that exact sequence is the only way to test the gesture honestly.
 // The board holds its rebuild back for the double-click window (see
@@ -175,6 +175,71 @@ setTimeout(() => {
         goalies.every(r => cellOf(r, 'Pos').textContent.trim() === 'G'),
         goalies.length + ' shown, ' + expectedGoalies + ' on the board');
   click($$('.filters .chip').find(c => c.getAttribute('data-pos') === 'ALL'));
+
+  console.log('\n--- keyboard filters ---');
+  /* 1-7 switch the position filter. These are bare digits on a page with about
+   * forty number inputs, so most of what matters here is what must NOT fire. */
+  const onChip = () => {
+    const c = $('.filters .chip.on');
+    return c ? c.getAttribute('data-pos') : '(none)';
+  };
+  const KEYMAP = [['1', 'ALL'], ['2', 'F'], ['3', 'C'], ['4', 'LW'],
+                  ['5', 'RW'], ['6', 'D'], ['7', 'G']];
+
+  const misKeyed = KEYMAP.filter(([key, pos]) => { press(key); return onChip() !== pos; });
+  check('every digit selects its chip', misKeyed.length === 0,
+        misKeyed.map(m => m[0] + ' -> ' + m[1]).join(', '));
+
+  press('6');
+  const byKey = $$('#rows tr[data-id]');
+  check('and the board actually filters with it',
+        byKey.length > 0 && byKey.length < 400 &&
+        byKey.every(r => /(^|,)D(,|$)/.test(cellOf(r, 'posLabel').textContent.trim())),
+        byKey.length + ' rows');
+  // Nothing today asserts the highlight ever moves, so a keyboard path that
+  // filtered correctly but left .on behind would pass every other chip check.
+  check('the highlight moves to the keyed chip',
+        onChip() === 'D' && $$('.filters .chip.on').length === 1,
+        onChip() + ', ' + $$('.filters .chip.on').length + ' highlighted');
+
+  press('8');
+  check('a digit with no chip does nothing', onChip() === 'D', onChip());
+  press('1', { ctrlKey: true });
+  check('and Ctrl+1 stays the browser tab shortcut', onChip() === 'D', onChip());
+
+  /* The check that matters. Typing a value into any of the ~40 number inputs
+   * must not also re-filter the board behind the drawer. */
+  click($('#open-settings'));
+  $('#min-gp').focus();
+  press('3');
+  check('a digit typed into a number input does not filter',
+        onChip() === 'D', onChip());
+  $('[data-scoring="G"]').focus();
+  press('2');
+  check('nor one typed into the scoring grid', onChip() === 'D', onChip());
+  $('#min-gp').blur();
+  $('#drawer').hidden = true;
+  search.focus();
+  press('4');
+  check('nor one typed into the search box', onChip() === 'D', onChip());
+  search.blur();
+
+  // The tooltips are generated from the same table the handler reads, so this
+  // proves they cannot advertise a key that does not work.
+  const badTip = KEYMAP.filter(([key, pos]) => {
+    const chip = $$('.filters .chip').find(c => c.getAttribute('data-pos') === pos);
+    return !chip || chip.getAttribute('title') !== 'press ' + key;
+  });
+  check('each chip advertises the key that works', badTip.length === 0,
+        badTip.map(b => b[1]).join(', '));
+  check('and the click-only chips keep their own tooltips',
+        /adjusted/.test($$('.filters .chip')
+          .find(c => c.getAttribute('data-pos') === 'ADJ').getAttribute('title')));
+
+  press('1');
+  check('and 1 puts every player back',
+        onChip() === 'ALL' && $$('#rows tr[data-id]').length > 800,
+        $$('#rows tr[data-id]').length + ' rows');
 
   console.log('\n--- drafting ---');
   const before = $$('#rows tr[data-id]')[0].querySelector('.pname').textContent;

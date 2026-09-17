@@ -401,6 +401,36 @@ player is above the next one still available at their position — the cost of
 waiting. A big number is a cliff. It updates on every pick, and it answers the
 question replacement level cannot: *if I pass here, what do I actually lose?*
 
+### Keys, and why the digit guard is broad
+
+`/` jumps to the search box, `esc` clears it, and **`1`–`7` switch the position
+filter** — All, F, C, LW, RW, D, G, in header order. The other five chips
+(Mine, Adj, Drafted, Watch, Avoid) stay click-only: seven is what fits on the
+home row of digits without anyone having to count along the header.
+
+The keys live in one array in `board/app.js`, and each chip's tooltip is
+generated from that same array at init — so a chip cannot advertise a key that
+does not work. Keying on `data-pos` rather than DOM index matters for the same
+reason: `chips[n - 1]` would renumber every shortcut the moment a chip was
+inserted or reordered.
+
+**Most of the work here is in what must not fire.** These are bare digits on a
+page with roughly forty number inputs — the scoring grid alone is twenty-five,
+plus nine roster slots, teams, tier-k, min-GP and the adjustment tiers. Typing
+`3` into a scoring box must never also re-filter the board. So the handler
+bails when focus is in an `input`, `select`, `textarea` or anything
+contenteditable; when any of ctrl/cmd/alt is held, since `Ctrl+1` is the
+browser's tab switch and not ours to take; and when the import dialog is open,
+because silently re-filtering the board behind a modal is surprising.
+
+The settings drawer is deliberately *not* blocked. Its inputs are already
+covered by the focus test, and a digit pressed with focus elsewhere is harmless.
+
+The `/` shortcut guards with `document.activeElement.id !== "search"` — a test
+naming exactly one element, which was fine for a key nobody types into a number
+field and is nowhere near enough for digits. That is the trap this note exists
+to record.
+
 ### Your shortlist
 
 The **Mark** column holds two opinions the projections cannot: `★` **watch**

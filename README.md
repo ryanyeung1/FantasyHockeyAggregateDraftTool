@@ -31,6 +31,7 @@ then open **`out/draft_board.html`**.
 | See a player's per-source projections | click their **name** (a chevron appears on hover) |
 | Jump to the search box | press `/` |
 | Clear the search | press `esc` |
+| Switch position filter | press `1`-`7` (All, F, C, LW, RW, D, G) |
 | Sort | click any column header |
 | Rank by a different metric | the dropdown in the **#** header |
 

@@ -953,6 +953,27 @@
     }
   }
 
+  /* The position chips, in header order, and the digit that selects each.
+   *
+   * Keyed on data-pos rather than DOM index on purpose: chips[n - 1] would
+   * renumber every shortcut the moment a chip is inserted or reordered. The
+   * tooltips are generated from this same array at init, so the hint a chip
+   * shows and the key that works cannot drift apart.
+   *
+   * The other five chips -- Mine, Adj, Drafted, Watch, Avoid -- stay
+   * click-only. Seven is what fits comfortably on the home row of digits. */
+  var FILTER_KEYS = ["ALL", "F", "C", "LW", "RW", "D", "G"];
+
+  function applyFilter(pos) {
+    state.filter = pos;
+    document.querySelectorAll(".filters .chip").forEach(function (c) {
+      c.classList.toggle("on", c.getAttribute("data-pos") === pos);
+    });
+    // renderRows, not refresh: the filter changes what is shown, never what is
+    // computed. The click path has always used the cheap re-render.
+    renderRows();
+  }
+
   /* Setting .value in code fires no input event, so state.query has to be kept
      in step by hand or the board stays filtered against a box that looks empty. */
   function clearSearch() {
@@ -2079,11 +2100,7 @@
     document.querySelector(".filters").addEventListener("click", function (e) {
       var chip = e.target.closest(".chip");
       if (!chip) return;
-      state.filter = chip.getAttribute("data-pos");
-      document.querySelectorAll(".filters .chip").forEach(function (c) {
-        c.classList.toggle("on", c === chip);
-      });
-      renderRows();
+      applyFilter(chip.getAttribute("data-pos"));
     });
 
     thead.addEventListener("click", function (e) {
@@ -2425,7 +2442,36 @@
         e.preventDefault();
         document.getElementById("search").focus();
         document.getElementById("search").select();
+        return;
       }
+
+      /* 1-7 switch the position filter.
+       *
+       * These are bare digits on a page with about forty number inputs -- the
+       * scoring grid alone is 25 -- so anything that takes typed input has to
+       * win. Typing "3" into a scoring box must never also re-filter the board.
+       * The "/" guard above only names #search, which is nowhere near enough
+       * here.
+       *
+       * Ctrl/Cmd+1 belongs to the browser's tab switching and passes straight
+       * through. The import modal is a real dialog with its own fields, so
+       * re-filtering the board behind it would be surprising; the settings
+       * drawer is deliberately not blocked, since its inputs are already
+       * covered by the focus test and a digit with focus elsewhere is
+       * harmless.
+       *
+       * No preventDefault: a bare digit has no default action once inputs are
+       * excluded, and claiming it could interfere with browser quick-find.
+       */
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var focused = document.activeElement;
+      if (focused && (focused.tagName === "INPUT" ||
+                      focused.tagName === "SELECT" ||
+                      focused.tagName === "TEXTAREA" ||
+                      focused.isContentEditable)) return;
+      if (!document.getElementById("import-modal").hidden) return;
+      var slot = FILTER_KEYS[parseInt(e.key, 10) - 1];
+      if (/^[0-9]$/.test(e.key) && slot) applyFilter(slot);
     });
   }
 
@@ -2443,6 +2489,12 @@
   // goes stale the moment you change it.
   document.getElementById("subtitle").textContent =
     DATA.meta.season + " · points league";
+  // Tooltips from the same table the handler reads, so a chip can never
+  // advertise a key that does not work.
+  FILTER_KEYS.forEach(function (pos, i) {
+    var chip = document.querySelector('.filters .chip[data-pos="' + pos + '"]');
+    if (chip) chip.title = "press " + (i + 1);
+  });
   bind();
   refresh();
   if (droppedOnLoad.length) reportDropped(droppedOnLoad, "your saved state");
