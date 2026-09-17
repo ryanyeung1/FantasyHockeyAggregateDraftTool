@@ -431,6 +431,37 @@ naming exactly one element, which was fine for a key nobody types into a number
 field and is nowhere near enough for digits. That is the trap this note exists
 to record.
 
+### Best Available follows your roster
+
+The panel lists the three best undrafted players per group, and the **groups
+come from the slot types your league actually asks you to fill** — not a fixed
+C/LW/RW/D/G.
+
+It used to be hardwired to those five. In a league that rosters ten flex
+forwards, splitting them three ways answers a question nobody has: you are not
+filling an LW slot, you are filling a forward slot, and the best forward
+available is the only name that matters. The same board also insisted on a
+goalie row in a league with no goalie slots.
+
+So a roster of `F 10, D 6, G 2` gives three groups — **F**, **D**, **G** — and
+the F group is the best three forwards outright, not a merge of three
+per-wing lists.
+
+A roster that keeps dedicated slots gets them back: the default `C 2, LW 2,
+RW 2, D 4, G 2` is unchanged. A roster with *both* kinds — say `C 2` alongside
+`F 2` — shows both, because filling a C slot and filling an F slot are
+different questions and the answer is often a different player.
+
+**UTIL and bench are deliberately skipped.** They take anyone, so their row
+would only repeat whoever already tops C or D.
+
+Two guards worth knowing. A roster with every slot zeroed falls back to the
+five positions rather than rendering an empty panel — a blank right rail reads
+as a broken board, not as a configuration choice. And the slot-to-position map
+(`F` takes C/LW/RW, `W` takes the two wings, and so on) is now defined once and
+shared with the roster panel, so the two can never disagree about what an `F`
+slot accepts.
+
 ### Your shortlist
 
 The **Mark** column holds two opinions the projections cannot: `★` **watch**
@@ -863,7 +894,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **296 UI checks** — the built page loaded in a headless DOM and driven through
+- **313 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

@@ -964,6 +964,16 @@
    * click-only. Seven is what fits comfortably on the home row of digits. */
   var FILTER_KEYS = ["ALL", "F", "C", "LW", "RW", "D", "G"];
 
+  /* The roster slot types, in the order a lineup is filled, and which positions
+     each will accept. Shared by the roster panel and Best Available so the two
+     can never disagree about what an "F" slot takes. */
+  var SLOT_ORDER = ["C", "LW", "RW", "W", "F", "D", "UTIL", "G", "BN"];
+  var SLOT_ELIGIBILITY = {
+    C: ["C"], LW: ["LW"], RW: ["RW"], W: ["LW", "RW"],
+    F: ["C", "LW", "RW"], D: ["D"], UTIL: ["C", "LW", "RW", "D"], G: ["G"],
+    BN: POS
+  };
+
   function applyFilter(pos) {
     state.filter = pos;
     document.querySelectorAll(".filters .chip").forEach(function (c) {
@@ -1517,8 +1527,32 @@
     renderReplacement();
   }
 
+  /* Which groups Best Available should show: one per slot type your roster
+   * actually asks you to fill.
+   *
+   * The panel used to be hardwired to C/LW/RW/D/G whatever the league looked
+   * like. In a league that rosters ten flex forwards, splitting them three ways
+   * answered a question nobody had -- you are not filling an LW slot, you are
+   * filling a forward slot -- while a league with no goalie slots still got a
+   * goalie row.
+   *
+   * UTIL and BN are deliberately skipped: they take anyone, so their row would
+   * just repeat whoever already tops C or D.
+   */
+  function bestAvailableSlots() {
+    var slots = state.settings.slots || {};
+    var wanted = SLOT_ORDER.filter(function (type) {
+      return type !== "UTIL" && type !== "BN" && (slots[type] || 0) > 0;
+    });
+    // Every slot zeroed would leave the panel blank and useless, so fall back
+    // to the five real positions rather than showing nothing.
+    return wanted.length ? wanted : POS.slice();
+  }
+
   function renderBestAvailable() {
-    var groups = { C: [], LW: [], RW: [], D: [], G: [] };
+    var types = bestAvailableSlots();
+    var groups = {};
+    types.forEach(function (type) { groups[type] = []; });
     var rows = state.result.rows;
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
@@ -1530,14 +1564,18 @@
       // The panel used to hide avoided players. It stopped doing so because a
       // player you have crossed off is still the best name at his position, and
       // seeing where he ranks is how you judge what passing on him costs.
-      for (var p = 0; p < POS.length; p++) {
-        if (row.posSet[POS[p]] && groups[POS[p]].length < 3) groups[POS[p]].push(row);
+      for (var p = 0; p < types.length; p++) {
+        var allowed = SLOT_ELIGIBILITY[types[p]] || [];
+        if (groups[types[p]].length >= 3) continue;
+        for (var e = 0; e < allowed.length; e++) {
+          if (row.posSet[allowed[e]]) { groups[types[p]].push(row); break; }
+        }
       }
     }
 
     var html = "";
-    for (var g = 0; g < POS.length; g++) {
-      var pos = POS[g];
+    for (var g = 0; g < types.length; g++) {
+      var pos = types[g];
       var list = groups[pos];
       if (!list.length) {
         html += '<div class="bp-row empty"><span class="bp-pos">' + pos +
@@ -1562,12 +1600,8 @@
    * the "needs" list reflects what is actually still open. */
   function renderRoster() {
     var slots = state.settings.slots;
-    var order = ["C", "LW", "RW", "W", "F", "D", "UTIL", "G", "BN"];
-    var eligibility = {
-      C: ["C"], LW: ["LW"], RW: ["RW"], W: ["LW", "RW"],
-      F: ["C", "LW", "RW"], D: ["D"], UTIL: ["C", "LW", "RW", "D"], G: ["G"],
-      BN: POS
-    };
+    var order = SLOT_ORDER;
+    var eligibility = SLOT_ELIGIBILITY;
 
     var picks = state.result.rows.filter(function (r) { return state.mine[r.id]; });
     picks.sort(function (a, b) { return b.vorp - a.vorp; });

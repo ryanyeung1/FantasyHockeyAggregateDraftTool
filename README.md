@@ -36,10 +36,11 @@ then open **`out/draft_board.html`**.
 | Rank by a different metric | the dropdown in the **#** header |
 
 Filter chips narrow the table by position, plus **Mine**, **Adj**, **Drafted**,
-**★ Watch** and **⊘ Avoid**. The right rail shows the best available at each
-position, your roster with the slots still open, and the current replacement
-level. The **Settings** drawer holds every knob to adjust scoring, source weights,
-roster shape, and model options. The board re-ranks automatically.
+**★ Watch** and **⊘ Avoid**. The right rail shows the best available for each
+slot your roster asks you to fill, your roster with the slots still open, and
+the current replacement level. The **Settings** drawer holds every knob to
+adjust scoring, source weights, roster shape, and model options. The board
+re-ranks automatically.
 Nothing needs rebuilding unless the projections themselves change.
 
 Everything saves to the browser automatically, **keyed by player name** so it
@@ -89,6 +90,6 @@ and can export its own CSV from the browser.
 ```
 python build.py          # build the board
 python build.py --verify # and cross-check against a reference sheet
-python run_tests.py      # 158 Python, 63 JS, 28 importer, 296 UI checks
+python run_tests.py      # 158 Python, 63 JS, 28 importer, 313 UI checks
 python make_reference.py # regenerate eligibility and age lists
 ```

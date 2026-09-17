@@ -617,6 +617,52 @@ setTimeout(() => {
   adpSel.value = 'average';
   fire(adpSel, 'change');
 
+  console.log('\n--- best available follows the roster ---');
+  /* The panel used to be hardwired to C/LW/RW/D/G whatever the league looked
+   * like. In a league that rosters ten flex forwards, splitting them three ways
+   * answers a question nobody has: you are filling a forward slot, not an LW
+   * slot. Groups now come from the slot types the roster actually asks for. */
+  const slotInput = (k) => $('[data-slot="' + k + '"]');
+  const SLOT_NAMES = ['C', 'LW', 'RW', 'W', 'F', 'D', 'UTIL', 'G', 'BN'];
+  const slotsBefore = {};
+  SLOT_NAMES.forEach(k => { slotsBefore[k] = slotInput(k).value; });
+  const setSlot = (k, v) => { slotInput(k).value = String(v); fire(slotInput(k), 'input'); };
+  // Only the first row of a group carries its label, so this is the group list.
+  const bpGroups = () => $$('#bestpos .bp-pos').map(e => e.textContent.trim()).filter(Boolean);
+
+  check('the default roster still splits the wings',
+        bpGroups().join(',') === 'C,LW,RW,D,G', bpGroups().join(','));
+
+  // Ten flex forwards, six defencemen, two goalies.
+  ['C', 'LW', 'RW'].forEach(k => setSlot(k, 0));
+  setSlot('F', 10); setSlot('D', 6); setSlot('G', 2);
+  check('a flex-forward roster collapses the wings into one group',
+        bpGroups().join(',') === 'F,D,G', bpGroups().join(','));
+
+  // The F group must be the best forwards outright, not a merge of three lists.
+  // The board's name cell carries the expand chevron; the panel's does not.
+  const topForwards = $$('#rows tr[data-id]')
+    .filter(r => /(^|,)(C|LW|RW)(,|$)/.test(cellOf(r, 'posLabel').textContent.trim()))
+    .slice(0, 3).map(r => cellOf(r, 'name').textContent.replace(/[\u25b8\u25be]/g, '').trim());
+  const shown = $$('#bestpos .bp-name').slice(0, 3).map(e => e.textContent.trim());
+  check('and lists the three best forwards outright',
+        shown.join('|') === topForwards.join('|'),
+        shown.join(', ') + '  vs  ' + topForwards.join(', '));
+
+  // A league that rosters no goalies should not be shown any.
+  setSlot('G', 0);
+  check('a position with no slots drops out of the panel',
+        bpGroups().indexOf('G') < 0, bpGroups().join(','));
+
+  // Every slot zeroed must not leave the panel blank and useless.
+  SLOT_NAMES.forEach(k => setSlot(k, 0));
+  check('an empty roster falls back to the five positions',
+        bpGroups().join(',') === 'C,LW,RW,D,G', bpGroups().join(','));
+
+  SLOT_NAMES.forEach(k => setSlot(k, slotsBefore[k]));
+  check('and restoring the roster restores the groups',
+        bpGroups().join(',') === 'C,LW,RW,D,G', bpGroups().join(','));
+
   console.log('\n--- drop-off column ---');
   // Start from a clean board: earlier sections drafted two players, and
   // clicking an already-drafted row would un-draft them.
