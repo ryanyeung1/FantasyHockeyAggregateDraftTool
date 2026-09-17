@@ -188,6 +188,34 @@ tbody td {
 
 tbody td.left { text-align: left; }
 tbody tr { cursor: pointer; }
+
+/* Position tint. Forwards are two thirds of the board and stay untinted: they
+   are the baseline the other two contrast against, and washing every row would
+   leave nothing to scan for.
+
+   Blue and amber for the same reason the age bands use them (see "Age, and the
+   prime bands" in DESIGN.md): they are far apart on the blue-yellow channel,
+   which is the channel red-green colour blindness leaves intact. Green is spoken
+   for by tr.mine below and would read as "my player".
+
+   Colour is not carrying this alone -- the Pos cell spells the position out in
+   text on every row, so the tint is reinforcement, not the signal.
+
+   ORDER IS LOAD-BEARING. These sit above the hover and tr.mine rules on purpose:
+   tr.mine td has identical specificity, so it only wins by coming later. Move
+   these below it and every player on your roster turns back into a position
+   colour. Hover outranks both on specificity and is unaffected. */
+tr.grp-d td { background: #141d2b; }
+tr.grp-g td { background: #231d13; }
+
+/* Each tint needs its own hover, the way tr.mine already does. The plain hover
+   colour is only a few points off the D tint, so hovering a defenceman would
+   barely register, and it is cooler than the G tint, so it would drain a goalie
+   row instead of lifting it. Both of these outrank the plain hover on
+   specificity; tr.mine:hover matches it and wins by coming later. */
+tr.grp-d:hover td { background: #1e2a3d; }
+tr.grp-g:hover td { background: #32291c; }
+
 tbody tr:hover td { background: #1a222c; }
 
 tr.drafted td { color: var(--dim); }

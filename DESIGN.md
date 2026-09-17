@@ -207,6 +207,52 @@ the payload 133 short arrays.
 Drop in a file for a platform that has no list and it joins the menu; remove
 both and the control hides itself again.
 
+### Telling the three pools apart
+
+The only thing on a row saying what kind of player it is was the `Pos` cell —
+dim grey, 11.5px, five columns in. Finding the defencemen meant reading that
+column row by row. Rows are now tinted by position group so the pools separate
+while you scan.
+
+**Forwards stay untinted.** They are 479 of the 806 rows; tinting them too
+would wash out the table and leave nothing to contrast against. Defence (252)
+and goalies (75) carry the tint, so blocks of colour break up a plain
+background rather than the other way round.
+
+**Blue and amber, for the reason the age bands use them** — see *Age, and the
+prime bands* below. They are far apart on the blue-yellow channel, the one
+red-green colour blindness leaves intact. Green was unavailable anyway: a
+green row already means *your* player.
+
+**Colour is not carrying this alone, and no glyph was added to make that true.**
+The `Pos` cell already spells the position out on every row, so the tint is
+reinforcement of something the row already says in text. A glyph on all 806
+rows would be noise for a signal already present. In greyscale the tints
+separate forwards from the other two but not defence from goalies — the letter
+covers that, exactly as it does today.
+
+Each tint carries **its own hover colour**. The shared hover is within a few
+points of the defence tint, so hovering a defenceman would have barely
+registered, and it is cooler than the goalie tint, so it would have drained the
+row rather than lifting it.
+
+The group comes from **`bestPos`** — the position the board actually values the
+player at, and the same field the Tier badge shows, so the two can never
+disagree. Two consequences:
+
+- It is **live**: replacement levels move during a draft, so a player eligible
+  at both defence and forward could change tint mid-session.
+- It is **not `groupOf()`**, which buckets by a fixed `G > D > F` rule for the
+  scarcity model's drain accounting. The two could disagree for a dual D/F
+  player. As it happens **no player on the current board is eligible at both**,
+  so today they agree everywhere — the divergence is latent, not live.
+
+The tint is CSS on a row class and adds nothing to the `Pos` cell's text, which
+two other checks assert on exactly. Source order in the stylesheet is
+load-bearing: `tr.mine td` has the same specificity as `tr.grp-d td` and wins
+only by sitting later, so the tints go above it. A test pins that with the
+computed style, since nothing about a stylesheet's text reveals cascade order.
+
 ### Schedule strength on the Team column
 
 Two schedule facts move a player's real value and appear in no projection, so
@@ -787,7 +833,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **288 UI checks** — the built page loaded in a headless DOM and driven through
+- **296 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

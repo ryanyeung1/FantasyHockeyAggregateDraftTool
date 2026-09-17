@@ -1424,6 +1424,9 @@
       if (state.mine[row.id]) cls.push("mine");
       // The Mark column sits well to the right, so the row carries an edge too.
       if (state.marks[row.id]) cls.push(state.marks[row.id]);
+      // Always emitted, including the unstyled forward case: a class that is
+      // always there is what a test can assert one-of-three against.
+      cls.push("grp-" + positionGroup(row));
       html.push('<tr data-id="' + row.id + '" class="' + cls.join(" ") + '">');
       for (var c = 0; c < COLUMNS.length; c++) {
         var col = COLUMNS[c];
@@ -2003,6 +2006,28 @@
       clearTimeout(pendingRefresh);
       pendingRefresh = null;
     }
+  }
+
+  /* Which pool a row belongs to, for the position tint: "f", "d" or "g".
+   *
+   * Keyed on bestPos -- the position the board actually values the player at,
+   * and the same field the Tier badge shows -- so the tint and the badge can
+   * never disagree. Two things follow from that and are deliberate:
+   *
+   *   - it is live. Replacement levels move during a draft, so a dual-eligible
+   *     D/F player's tint can change. A handful of players qualify.
+   *   - it is NOT V.groupOf(), which buckets by a fixed G > D > F rule for the
+   *     scarcity model's drain accounting. A dual D/F player can be tinted a
+   *     forward while counting against defence demand. Ranking by value rather
+   *     than by rule is the choice here.
+   *
+   * bestPosition() returns null for a player with no eligible position, which
+   * falls through to the untinted forward case.
+   */
+  function positionGroup(row) {
+    if (row.bestPos === "G") return "g";
+    if (row.bestPos === "D") return "d";
+    return "f";
   }
 
   /* Repaint one row's drafted/mine styling without touching the rest. */

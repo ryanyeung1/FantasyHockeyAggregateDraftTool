@@ -772,6 +772,84 @@ setTimeout(() => {
         firstAge);
   click($$('#head th')[COL['VORP']]);
 
+  console.log('\n--- position groups ---');
+  /* Forwards, defence and goalies are tinted apart so the three pools separate
+   * while scanning. The tint is CSS on a row class -- nothing is added to the
+   * Pos cell's text, which two other checks assert on exactly. */
+  const GRPS = ['grp-f', 'grp-d', 'grp-g'];
+  const grpOf = (r) => GRPS.filter(c => r.classList.contains(c));
+  const posRows = $$('#rows tr[data-id]');
+
+  check('every row carries exactly one position group',
+        posRows.every(r => grpOf(r).length === 1),
+        posRows.filter(r => grpOf(r).length !== 1).length + ' rows without one');
+
+  // Single-position rows are unambiguous, so the class must match the letter.
+  // Multi-position rows are decided by bestPos and deliberately not asserted.
+  const wrong = posRows.filter(r => {
+    const pos = cellOf(r, 'posLabel').textContent.trim();
+    const grp = grpOf(r)[0];
+    if (pos === 'G') return grp !== 'grp-g';
+    if (pos === 'D') return grp !== 'grp-d';
+    if (pos === 'C' || pos === 'LW' || pos === 'RW') return grp !== 'grp-f';
+    return false;
+  });
+  check('and it agrees with the Pos cell on single-position players',
+        wrong.length === 0,
+        wrong.slice(0, 3).map(r => cellOf(r, 'posLabel').textContent.trim() +
+          ' -> ' + grpOf(r)).join(' | '));
+
+  check('all three groups are actually present on the board', (() => {
+    const seen = {};
+    posRows.forEach(r => { seen[grpOf(r)[0]] = 1; });
+    return GRPS.every(g => seen[g]);
+  })());
+
+  /* The cascade is the part that breaks silently. tr.mine td and tr.grp-d td
+   * have identical specificity, so mine wins only by sitting later in the
+   * stylesheet -- move the tints below it and every player on your roster turns
+   * back into a position colour. A regex over the CSS cannot see that; the
+   * computed style can, which is how the .flag collision was finally found. */
+  const bgOf = (r) => window.getComputedStyle(r.children[1]).backgroundColor;
+  const fRow = posRows.find(r => grpOf(r)[0] === 'grp-f');
+  const dRow = posRows.find(r => grpOf(r)[0] === 'grp-d');
+  const gRow = posRows.find(r => grpOf(r)[0] === 'grp-g');
+  check('defence and goalies are tinted, forwards are the plain baseline',
+        bgOf(dRow) !== bgOf(fRow) && bgOf(gRow) !== bgOf(fRow) &&
+        bgOf(dRow) !== bgOf(gRow),
+        'F ' + bgOf(fRow) + ' | D ' + bgOf(dRow) + ' | G ' + bgOf(gRow));
+
+  const plainD = bgOf(dRow);
+  dRow.classList.add('mine');
+  check('a player on your roster still reads as yours over the tint',
+        bgOf(dRow) !== plainD, plainD + ' -> ' + bgOf(dRow));
+  dRow.classList.remove('mine');
+  check('and the tint comes back when they leave your roster',
+        bgOf(dRow) === plainD, bgOf(dRow));
+
+  /* Hover has to stay legible on a tinted row. The plain hover colour is only
+   * a few points off the D tint and is cooler than the G tint, so without a
+   * per-group hover, hovering a defenceman would barely register and hovering a
+   * goalie would drain the row instead of lifting it. */
+  const hoverBg = (sel) => {
+    const m = pageCss.match(new RegExp(sel + '\\s*\\{[^}]*background:\\s*(#[0-9a-f]{6})', 'i'));
+    return m ? m[1].toLowerCase() : '';
+  };
+  check('each tint has its own hover, brighter than the tint itself', (() => {
+    const pairs = [['tr\\.grp-d td', 'tr\\.grp-d:hover td'],
+                   ['tr\\.grp-g td', 'tr\\.grp-g:hover td']];
+    const sum = (hex) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) +
+                         parseInt(hex.slice(5, 7), 16);
+    return pairs.every(([flat, hov]) => {
+      const a = hoverBg(flat), b = hoverBg(hov);
+      return a && b && sum(b) > sum(a);
+    });
+  })());
+
+  check('the group classes are scoped to rows, not global',
+        /tr\.grp-d td\s*\{/.test(pageCss) &&
+        !/^\.grp-d\s*\{/m.test(pageCss));
+
   console.log('\n--- adj column alignment ---');
   // Cells in the flagged columns end with a fixed-width direction slot, so a
   // heading with ordinary padding sits right of its own numbers. Every column
