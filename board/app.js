@@ -2479,6 +2479,36 @@
         if (search.value) clearSearch();
         return;
       }
+      /* Enter, in the search box, drafts the top match.
+       *
+       * The first UNDRAFTED one, not simply the first row: search "mcdavid"
+       * after he has gone and the next match is taken instead, so a repeated
+       * Enter walks down the list rather than stalling on a name already off
+       * the board. With Hide drafted on the two are the same thing anyway.
+       *
+       * It never undrafts. Enter is "this player is gone", and a stray press
+       * must not quietly put somebody back on the board mid-draft -- clicking
+       * the row is still how you undo a pick.
+       *
+       * Requires a query. Enter in an empty box would otherwise draft whoever
+       * happens to top the board, which is a costly accident to explain.
+       *
+       * The text is left alone on purpose: the row stays visible, struck
+       * through, so you can see the pick landed. `esc` clears it.
+       */
+      if (e.key === "Enter" && document.activeElement === document.getElementById("search")) {
+        e.preventDefault();
+        if (!state.query.trim()) return;
+        var matches = visibleRows();
+        for (var m = 0; m < matches.length; m++) {
+          if (!state.drafted[matches[m].id]) {
+            toggleDrafted(matches[m].id, false);
+            return;
+          }
+        }
+        return;
+      }
+
       // "/" jumps to search, the one shortcut worth muscle memory mid-draft.
       if (e.key === "/" && document.activeElement.id !== "search") {
         e.preventDefault();

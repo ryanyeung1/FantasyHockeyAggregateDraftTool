@@ -433,6 +433,20 @@ does not work. Keying on `data-pos` rather than DOM index matters for the same
 reason: `chips[n - 1]` would renumber every shortcut the moment a chip was
 inserted or reordered.
 
+**`enter` in the search box drafts the top match** — the first *undrafted* one,
+not simply the first row, so a repeated `enter` walks down the list instead of
+stalling on a name already off the board. Search `hughes` and three presses take
+Quinn, then Jack, then Luke. With **Hide drafted** on the two rules coincide.
+
+It never undrafts. `enter` means *this player is gone*, and a stray press must
+not quietly put somebody back on the board mid-draft; clicking the row is still
+how a pick is undone. It also does nothing when the box is empty, which would
+otherwise draft whoever happens to top the board — an expensive accident to
+explain to a room.
+
+The search text is deliberately left alone, so the row stays visible and struck
+through and you can see the pick landed. `esc` clears it.
+
 **Most of the work here is in what must not fire.** These are bare digits on a
 page with roughly forty number inputs — the scoring grid alone is twenty-five,
 plus nine roster slots, teams, tier-k, min-GP and the adjustment tiers. Typing
@@ -913,7 +927,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **318 UI checks** — the built page loaded in a headless DOM and driven through
+- **328 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.

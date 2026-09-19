@@ -30,6 +30,7 @@ then open **`out/draft_board.html`**.
 | Shortlist or rule out a player | `★` / `⊘` in the **Mark** column |
 | See a player's per-source projections | click their **name** (a chevron appears on hover) |
 | Jump to the search box | press `/` |
+| Draft the top search result | press `enter` |
 | Clear the search | press `esc` |
 | Switch position filter | press `1`-`7` (All, F, C, LW, RW, D, G) |
 | Sort | click any column header |
@@ -90,6 +91,6 @@ and can export its own CSV from the browser.
 ```
 python build.py          # build the board
 python build.py --verify # and cross-check against a reference sheet
-python run_tests.py      # 164 Python, 63 JS, 28 importer, 318 UI checks
+python run_tests.py      # 164 Python, 63 JS, 28 importer, 328 UI checks
 python make_reference.py # regenerate eligibility and age lists
 ```

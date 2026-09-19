@@ -164,6 +164,65 @@ setTimeout(() => {
         $$('#rows tr[data-id]').length > 800,
         $$('#rows tr[data-id]').length + ' rows');
 
+  /* Enter in the search box drafts the top match -- the first UNDRAFTED one,
+   * so a repeated Enter walks down the list instead of stalling on a name
+   * already off the board. It never undrafts: a stray press must not quietly
+   * put somebody back on. This section undoes every pick it makes. */
+  const draftedNames = () => $$('#rows tr[data-id]')
+    .filter(r => r.classList.contains('drafted'))
+    .map(r => r.querySelector('.pname').textContent.trim());
+  const typeSearch = (v) => { search.value = v; fire(search, 'input'); };
+
+  // An empty box must never draft: Enter would otherwise take whoever tops
+  // the board, which is an expensive accident to explain mid-draft.
+  search.focus();
+  typeSearch('');
+  press('Enter');
+  check('enter on an empty search drafts nobody',
+        $$('#rows tr[data-id]').filter(r => r.classList.contains('drafted')).length === 0);
+
+  typeSearch('hughes');
+  const hughes = $$('#rows tr[data-id]').map(r => r.querySelector('.pname').textContent.trim());
+  check('the search finds several players to work through', hughes.length >= 3,
+        hughes.join(', '));
+  press('Enter');
+  check('enter drafts the top match', draftedNames().join() === hughes[0], draftedNames().join());
+  check('and leaves the search text alone', search.value === 'hughes', search.value);
+  check('and keeps focus for the next name', doc.activeElement === search,
+        doc.activeElement.id);
+
+  press('Enter');
+  check('a second enter takes the next one, not the same one again',
+        draftedNames().length === 2 && draftedNames()[1] === hughes[1],
+        draftedNames().join(', '));
+
+  // Walk to the end, then press again: nothing may come back on the board.
+  for (let i = 2; i < hughes.length; i++) press('Enter');
+  const allTaken = draftedNames().length;
+  press('Enter');
+  check('enter never undrafts once they are all taken',
+        draftedNames().length === allTaken && allTaken === hughes.length,
+        allTaken + ' of ' + hughes.length);
+
+  typeSearch('zzzznobody');
+  press('Enter');
+  check('enter on a search with no matches does nothing',
+        $$('#rows tr[data-id]').length === 0 && errors.length === 0);
+
+  // Outside the box the key belongs to whatever else wants it.
+  typeSearch('hughes');
+  search.blur();
+  press('Enter');
+  check('enter outside the search box drafts nobody',
+        draftedNames().length === allTaken, draftedNames().length + ' drafted');
+
+  // Hand the board back exactly as found.
+  draftedNames().forEach(name => click($$('#rows tr[data-id]').find(
+    r => r.querySelector('.pname').textContent.trim() === name).querySelector('.tm')));
+  check('the section leaves nobody drafted', draftedNames().length === 0,
+        draftedNames().join(', '));
+  typeSearch('');
+
   // Count goalies on the unfiltered board first, so this does not need updating
   // every time a source is added.
   const allRows = $$('#rows tr[data-id]');
