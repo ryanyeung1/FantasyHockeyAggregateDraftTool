@@ -9,11 +9,12 @@ import json
 import os
 from collections import OrderedDict
 
+from . import adp as adp_mod
 from . import ages as ages_mod
 from . import schedule as schedule_mod
 from . import sources as sources_mod
 from . import teams as teams_mod
-from .config import OUT_DIR
+from .config import CONFIG_DIR, OUT_DIR
 from .names import normalize, suggest
 
 
@@ -46,6 +47,14 @@ def merge(spec, alias_table, config, age_table=None):
     by_key = OrderedDict()
     rows_by_source = OrderedDict()
     adp = {}
+    # Yahoo's own board, read from config/adp_yahoo.csv. Seeded before the
+    # source loop because that loop uses setdefault -- first value wins --
+    # so anything a projection source publishes as a Yahoo column can only
+    # fill players this file leaves out. Daily Faceoff no longer declares
+    # one at all, so in practice this is the whole provider.
+    from_file = adp_mod.load(CONFIG_DIR, alias_table=alias_table)
+    if from_file:
+        adp['yahoo'] = dict(from_file)
     display_by_key = {}
 
     for source in source_defs:

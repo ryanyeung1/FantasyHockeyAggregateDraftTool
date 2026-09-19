@@ -567,12 +567,16 @@ class TestDailyFaceoffSource(unittest.TestCase):
         self.assertAlmostEqual(self.by_key["nathan mackinnon"].stats["PM"],
                                11.6, places=4)
 
-    def test_adp_is_read(self):
+    def test_adp_is_no_longer_read(self):
+        """Its Yahoo column was superseded by Yahoo's own board.
+
+        Measured against Yahoo's current draft-analysis page, this column sat
+        26.8 picks away on average over 249 shared players and matched exactly
+        0.4% of the time -- snapshot drift rather than a wrong platform
+        assignment, but stale either way. config/adp_yahoo.csv replaced it.
+        """
         _, _, aliases = _load()
-        adp = sources.read_adp(self.source, aliases)
-        # Daily Faceoff's single ADP column tracks Yahoo.
-        self.assertEqual(sorted(adp), ["yahoo"])
-        self.assertAlmostEqual(adp["yahoo"]["nathan mackinnon"], 2.4, places=2)
+        self.assertEqual(sources.read_adp(self.source, aliases), {})
 
 
 class TestHistorySource(unittest.TestCase):
@@ -763,18 +767,18 @@ class TestPayload(unittest.TestCase):
 
     def test_adp_is_attached(self):
         mac = [p for p in self.payload["players"] if p["n"] == "Nathan MacKinnon"][0]
-        self.assertAlmostEqual(mac["adp"]["average"], 1.9, places=1)
-        self.assertAlmostEqual(mac["adp"]["yahoo"], 2.4, places=1)
+        self.assertAlmostEqual(mac["adp"]["average"], 1.7, places=1)
+        self.assertAlmostEqual(mac["adp"]["yahoo"], 2.1, places=1)
         self.assertAlmostEqual(mac["adp"]["fantrax"], 1.3, places=1)
 
     def test_providers_are_declared_with_their_coverage(self):
         got = dict((p["id"], p["players"]) for p in self.payload["adp_providers"])
         self.assertEqual(sorted(got), ["average", "fantrax", "yahoo"])
-        # One free source per platform now that Dom's ADP sheet is gone.
-        self.assertEqual(got["yahoo"], 254)      # Daily Faceoff
+        # Yahoo now comes from Yahoo; Fantrax from the source that tracks it.
+        self.assertEqual(got["yahoo"], 264)      # Yahoo's own draft-analysis page
         self.assertEqual(got["fantrax"], 429)    # DtZ
         # The average is computed, not read, so it covers the union of the two.
-        self.assertEqual(got["average"], 434)
+        self.assertEqual(got["average"], 433)
 
     def test_the_average_is_the_mean_of_the_platforms_that_rank_a_player(self):
         """The rule Dom's own AVG column followed, reproduced from free data.
@@ -785,9 +789,9 @@ class TestPayload(unittest.TestCase):
         """
         mac = [p for p in self.payload["players"]
                if p["k"] == "nathan mackinnon"][0]
-        self.assertAlmostEqual(mac["adp"]["yahoo"], 2.4, places=1)
+        self.assertAlmostEqual(mac["adp"]["yahoo"], 2.1, places=1)
         self.assertAlmostEqual(mac["adp"]["fantrax"], 1.3, places=1)
-        self.assertAlmostEqual(mac["adp"]["average"], 1.9, places=1)
+        self.assertAlmostEqual(mac["adp"]["average"], 1.7, places=1)
 
         both = only_one = 0
         for player in self.payload["players"]:

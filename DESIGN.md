@@ -124,13 +124,32 @@ and its sort show.
 
 | Column | Ranks | Where it comes from |
 |---|---|---|
-| Average (Yahoo + Fantrax) | 434 | computed — the default |
-| Yahoo | 254 | Daily Faceoff's ADP column |
+| Average (Yahoo + Fantrax) | 433 | computed — the default |
+| Yahoo | 264 | Yahoo's own draft-analysis page |
 | Fantrax | 429 | DtZ's ADP column |
 
-DtZ and Daily Faceoff each publish one unlabelled ADP, assigned to the platform
-it tracks: DtZ's matches Fantrax and never Yahoo, Daily Faceoff's matches Yahoo
-45% exactly and Fantrax never.
+**Yahoo's number comes from Yahoo.** It used to come from Daily Faceoff's
+unlabelled ADP column, assigned to Yahoo because it matched Yahoo's board 45%
+exactly and Fantrax never. That assignment was sound and still is — measured
+against Yahoo's current page, Daily Faceoff's column is 26.8 picks away on
+average where DtZ's is 50.9 — but a second-hand column is only as fresh as
+whenever that source last snapshotted it, and the drift had grown to 27 picks
+with an exact-match rate of 0.4%.
+
+So Yahoo's draft-analysis page is pasted into `sources/Yahoo-ADP-Raw.xlsx` and
+`make_reference.py` extracts `config/adp_yahoo.csv` from it — the same shape as
+the eligibility and age tables: a public fact, extracted once, tracked in the
+repo, with the bulky original kept local. The build works without the paste
+present. Re-paste and re-run that script to refresh.
+
+That page gives three ADP columns — Preseason, All Drafts and Last 7 Days.
+**All Drafts** is the one read: Last 7 Days is empty for every player Yahoo
+returned, and of the other two only All Drafts is monotonic against the page's
+own sort order, so it is the live figure. They differ on 54% of players, always
+by a fraction of a pick.
+
+DtZ still publishes one unlabelled ADP, read as Fantrax on the same evidence:
+it matches Fantrax and never Yahoo.
 
 The **average is computed**, not read from anywhere: the mean of whichever
 platforms rank a player, so someone only one of them lists still gets a number.
@@ -879,7 +898,7 @@ so there is no second implementation to drift out of sync.
 python run_tests.py
 ```
 
-- **158 Python tests** — name and team normalization, alias resolution, the
+- **164 Python tests** — name and team normalization, alias resolution, the
   same-name trap, the surname-based suggester, source parsing against known spot
   values from every workbook, the HTML reader (encoding, `2TM` deduping, derived
   stats, summary-row exclusion), the merge, and the history join.

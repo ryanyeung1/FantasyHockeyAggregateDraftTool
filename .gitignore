@@ -14,6 +14,12 @@ sources/*Fantasy-Projections-Fantrax*
 # LineupExperts -- likewise not built into the board, kept local for UI import.
 sources/LineupExperts*
 
+# The raw copy-paste of Yahoo's draft-analysis page, 2.6 MB of spreadsheet
+# for 264 numbers. config/adp_yahoo.csv is the extract the build reads and
+# IS tracked, so the board builds without this file present -- keep it local
+# and re-run make_reference.py when you paste a fresh one.
+sources/Yahoo-ADP-Raw*
+
 # The free factual columns extracted from those workbooks -- positions and ages,
 # which are Yahoo's and Fantrax's own rulings rather than projection work -- ARE
 # tracked on purpose: the board needs them and the build works without the

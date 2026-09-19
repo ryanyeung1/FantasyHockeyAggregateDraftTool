@@ -598,11 +598,11 @@ setTimeout(() => {
   check('ADP column selector exists', !!adpSel);
   check('it offers all three columns', adpSel.options.length === 3,
         Array.prototype.map.call(adpSel.options, o => o.value).join(','));
-  check('and states the coverage of each', adpSel.innerHTML.indexOf('254 players') !== -1,
+  check('and states the coverage of each', adpSel.innerHTML.indexOf('264 players') !== -1,
         adpSel.options[1] && adpSel.options[1].textContent);
 
-  // MacKinnon is row 1 and the two platforms rank him differently -- Yahoo 2.4,
-  // Fantrax 1.3 -- so the cell must actually change.
+  // MacKinnon is row 1 and the two platforms rank him differently -- Yahoo 2.1
+  // (from Yahoo's own board), Fantrax 1.3 -- so the cell must actually change.
   const adpCell = () => $('#rows tr[data-id] td.adp').textContent.trim();
   adpSel.value = 'yahoo';
   fire(adpSel, 'change');
@@ -612,7 +612,7 @@ setTimeout(() => {
   const fantraxAdp = adpCell();
   check('switching the ADP column changes the number', yahooAdp !== fantraxAdp,
         yahooAdp + ' -> ' + fantraxAdp);
-  check('Yahoo reads 2.4 for the top player', yahooAdp === '2.4', yahooAdp);
+  check('Yahoo reads 2.1 for the top player', yahooAdp === '2.1', yahooAdp);
   check('Fantrax reads 1.3 for the same player', fantraxAdp === '1.3', fantraxAdp);
   adpSel.value = 'average';
   fire(adpSel, 'change');
