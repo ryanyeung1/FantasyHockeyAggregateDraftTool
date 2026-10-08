@@ -942,6 +942,61 @@ setTimeout(() => {
         firstAge);
   click($$('#head th')[COL['VORP']]);
 
+  console.log('\n--- press, focus and increased contrast ---');
+  /* A design pass measured the palette and found three text colours under the
+   * 4.5:1 floor, no press feedback at all, and no answer for anyone asking the
+   * system for more contrast. These pin the fixes. */
+  const ratio = (fg, bg) => {
+    const lum = (hex) => {
+      const p = [1, 3, 5].map(i => {
+        const v = parseInt(hex.substr(i, 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+    };
+    const a = lum(fg), b = lum(bg);
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  };
+  const token = (name) => {
+    const m = pageCss.match(new RegExp('--' + name + ':\\s*(#[0-9a-f]{6})', 'i'));
+    return m ? m[1].toLowerCase() : '';
+  };
+
+  check('the recessed text tokens clear 4.5:1 on the page ground', (() => {
+    const bg = token('bg');
+    return ratio(token('dim'), bg) >= 4.5 && ratio(token('muted'), bg) >= 4.5;
+  })(), 'dim ' + ratio(token('dim'), token('bg')).toFixed(2) +
+        ', muted ' + ratio(token('muted'), token('bg')).toFixed(2));
+
+  // The worst case on the board: dim text on your own drafted player.
+  check('and on the roster tint, which was the worst pairing',
+        ratio(token('dim'), '#12261a') >= 4.5,
+        ratio(token('dim'), '#12261a').toFixed(2));
+
+  check('the reach indicator clears it too, like steal always did',
+        ratio(token('reach'), token('bg')) >= 4.5 &&
+        ratio(token('steal'), token('bg')) >= 4.5,
+        'reach ' + ratio(token('reach'), token('bg')).toFixed(2) +
+        ', steal ' + ratio(token('steal'), token('bg')).toFixed(2));
+
+  /* Press feedback must be a background-IMAGE: row backgrounds are contested
+   * by mine/grp-d/grp-g and their hover variants, and tr.mine:hover td has two
+   * classes, so a colour here would silently lose on your own players. */
+  check('rows have a press state at all',
+        /tbody tr:active td\s*\{/.test(pageCss));
+  check('and it layers over the row tints instead of fighting them',
+        /tbody tr:active td\s*\{[^}]*background-image/.test(pageCss) &&
+        !/tbody tr:active td\s*\{[^}]*background:\\s*#/.test(pageCss));
+  check('controls get a press state of their own',
+        /\.chip:active/.test(pageCss) && /\.btn:active/.test(pageCss));
+
+  check('keyboard focus is visible, and only for keyboard',
+        /:focus-visible\s*\{[^}]*outline:/.test(pageCss),
+        'focus-visible rule present');
+
+  check('increased contrast has an answer',
+        /@media \(prefers-contrast: more\)/.test(pageCss));
+
   console.log('\n--- position groups ---');
   /* Forwards, defence and goalies are tinted apart so the three pools separate
    * while scanning. The tint is CSS on a row class -- nothing is added to the

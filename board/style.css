@@ -21,7 +21,12 @@
   --line-soft: #212a34;
   --text: #e6edf3;
   --muted: #8b98a6;
-  --dim: #626f7d;
+  /* Lifted from #626f7d, which measured 3.66:1 on --bg and 3.10:1 on the
+     tr.mine tint -- both under the 4.5:1 floor. Drafted rows are meant to
+     recede, but you still read them to see who went and to whom, so the
+     de-emphasis comes from the strikethrough and the tint, not from dropping
+     below legible. #828f9d measures 5.69 on --bg and 4.83 on tr.mine. */
+  --dim: #828f9d;
   --accent: #4c9aff;
   --accent-dim: #1f4b80;
   --good: #3fb950;
@@ -36,7 +41,10 @@
   --pre-prime: #58a6ff;
   --post-prime: #f0883e;
   --steal: #2ea043;
-  --reach: #bb4b3f;
+  /* Was #bb4b3f at 3.75:1. #d1685a measures 5.22, and sits close enough to
+     --steal (5.57) that the steal/reach pair finally reads as equal weight
+     rather than one side being dimmer than the other. */
+  --reach: #d1685a;
   --row-h: 27px;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -873,4 +881,62 @@ thead th .rankpick:hover { border-color: var(--accent); }
   margin-left: 6px;
   color: var(--muted);
   font-size: 11px;
+}
+
+/* ------------------------------------------------- press and focus states */
+
+/* Feedback on pointer-DOWN, not on release. The board had 19 hover rules and
+   no press state at all, so a click felt dead until the row repainted.
+
+   Drawn as a background-IMAGE rather than a background-color on purpose. Row
+   backgrounds are already contested by tr.mine, tr.grp-d, tr.grp-g and their
+   hover variants -- and tr.mine:hover td (two classes) outranks any plain
+   tbody tr:active td, so a colour here would lose on your own players and
+   need a rule per combination. An image layer composes over whichever
+   background-color won, so one rule covers every tint. */
+tbody tr:active td {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.055),
+                                    rgba(255, 255, 255, 0.055));
+}
+
+/* Controls take the scale instead: they are small, isolated, and a transform
+   reads more clearly than a tint at chip size. 100ms is below the point where
+   a press starts to feel reported rather than felt. */
+.chip:active, .btn:active, .adjbtn:active, .markbtn:active, .close:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease-out;
+}
+
+/* Keyboard focus was visible on three inputs and nowhere else, which became a
+   real gap once /, esc, 1-7 and enter made keyboard use a genuine path.
+   :focus-visible rather than :focus so a mouse click does not leave a ring.
+
+   NOTE: this covers the controls -- chips, buttons, selects, inputs. Table
+   rows are not focusable, so arrowing through the board is still not a thing;
+   that needs a roving tabindex and is a separate piece of work. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------ increased contrast */
+
+/* Everything on this board is a custom colour on a near-black ground, so the
+   people who ask the system for more contrast are exactly the people the
+   default palette serves worst. Lift the two recessed text tokens to the
+   primary ramp, make the separators real lines, and give the position tints
+   and the roster tint enough ground to survive on their own. */
+@media (prefers-contrast: more) {
+  :root {
+    --muted: #c2ccd6;
+    --dim: #a7b2be;
+    --line: #4a5867;
+    --line-soft: #3a4654;
+  }
+  tr.grp-d td { background: #162234; }
+  tr.grp-g td { background: #2b2316; }
+  tr.mine td { background: #163322; }
+  /* The glyphs carry the meaning; at this setting let them carry weight too. */
+  td .flag, .bp-row .bp-avoid { font-weight: 700; }
 }

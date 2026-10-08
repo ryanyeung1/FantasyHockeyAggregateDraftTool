@@ -311,6 +311,49 @@ missing workbook is not an error; the marks simply do not appear.
 **This is an indicator only.** It never touches the blend or VORP — the
 projections already price the player, and this is context for the pick.
 
+### What a design pass changed, and what it deliberately did not
+
+The palette was measured rather than eyeballed. Three text colours sat under
+the 4.5:1 floor and are now lifted:
+
+| Token | Was | Now | On `--bg` | Worst pairing |
+|---|---|---|---|---|
+| `--dim` | `#626f7d` | `#828f9d` | 3.66 → 5.69 | 3.10 → 4.83 on the roster tint |
+| `--reach` | `#bb4b3f` | `#d1685a` | 3.75 → 5.22 | — |
+
+The worst case was **dim text on your own drafted player** at 3.10:1. Drafted
+rows are meant to recede, but you still read them to see who went and to whom,
+so the de-emphasis now comes from the strikethrough and the tint rather than
+from dropping below legible. `--reach` also landed close to `--steal` (5.22
+against 5.57), so the two finally read as equal weight instead of one side
+being the dimmer half of a pair.
+
+The age bands needed no change: they already measured 7.43 and 7.42, which is
+what arguing a colour choice through gets you.
+
+**Rows gained a press state**, drawn as a `background-image` layer rather than
+a colour. Row backgrounds are already contested by `tr.mine`, `tr.grp-d`,
+`tr.grp-g` and their hover variants — and `tr.mine:hover td` carries two
+classes, so a press *colour* would silently lose on your own players and need a
+rule per combination. An image layer composes over whichever colour won, so one
+rule covers every tint. Controls take a `scale(0.97)` instead, which reads more
+clearly at chip size.
+
+**Keyboard focus is visible** via `:focus-visible`, which matters now that `/`,
+`esc`, `1`–`7` and `enter` make keyboard use a real path. This covers the
+controls only: table rows are not focusable, so arrowing through the board
+still is not a thing — that needs a roving `tabindex` and is separate work.
+
+**`prefers-contrast: more`** lifts the two recessed tokens to the primary ramp,
+makes the separators real lines, and gives the row tints more ground. Everything
+here is a custom colour on a near-black field, so the people who ask the system
+for more contrast are the ones the default palette serves worst.
+
+Not done, on purpose: **type is still px-only**, so a raised browser font size
+does nothing (zoom works). Fixing it means moving a 17-column table to `rem`
+and re-proving reflow — real work, not a token swap, and better done
+deliberately than squeezed into a contrast pass.
+
 ### Age, and the prime bands
 
 The **Age** column marks the two ends of the curve: `22 ▲` **pre-prime** (24 and
@@ -927,7 +970,7 @@ python run_tests.py
   swing they are really worth), and the live view — including the two cases that
   distinguish a correct live model from a broken one: over-drafting a position,
   and spots burned on weak players.
-- **328 UI checks** — the built page loaded in a headless DOM and driven through
+- **336 UI checks** — the built page loaded in a headless DOM and driven through
   search, filters, drafting, adjusting, the settings drawer, sorting, the
   last-season columns and persistence. Needs `npm install`; skips cleanly
   without it.
